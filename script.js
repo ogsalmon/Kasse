@@ -311,74 +311,134 @@ async function finishOrder() {
 }
 
 function downloadPDF(){
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert("PDF-Bibliothek nicht geladen.");
+    return;
+  }
 
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
 
-let y = 20;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const rowHeight = 7;
+  let y = 18;
 
-doc.setFontSize(18);
-doc.text("Kassenabrechnung",20,y);
+  const fmt = (num) => `${num.toFixed(2)} EUR`;
 
-y += 15;
+  const drinkStats = {};
 
-const drinkStats = {};
+  drinks.forEach(d => {
+    drinkStats[d.name] = {
+      qty: 0,
+      price: d.price
+    };
+  });
 
-drinks.forEach(d=>{
-drinkStats[d.name] = {
-qty:0,
-price:d.price
-};
-});
+  allOrders.forEach(order => {
+    order.items.forEach(item => {
+      if (!drinkStats[item.name]) {
+        drinkStats[item.name] = {
+          qty: 0,
+          price: item.price
+        };
+      }
 
-allOrders.forEach(order=>{
-order.items.forEach(item=>{
+      drinkStats[item.name].qty += item.qty;
+    });
+  });
 
-if(!drinkStats[item.name]){
-drinkStats[item.name] = {
-qty:0,
-price:item.price
-};
-}
+  const rows = Object.entries(drinkStats)
+    .map(([name, data]) => {
+      const qty = data.qty;
+      const price = data.price;
+      const total = qty * price;
+      return { name, qty, price, total };
+    })
+    .filter(r => r.qty > 0)
+    .sort((a, b) => b.qty - a.qty || a.name.localeCompare(b.name, "de"));
 
-drinkStats[item.name].qty += item.qty;
+  let totalCash = 0;
+  rows.forEach(r => {
+    if (r.name !== "Pfand") {
+      totalCash += r.total;
+    }
+  });
 
-});
-});
+  doc.setFillColor(67, 87, 173);
+  doc.rect(0, 0, pageWidth, 24, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Kassenabrechnung", margin, 14);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(new Date().toLocaleString("de-DE"), pageWidth - margin, 14, { align: "right" });
 
-let totalCash = 0;
+  y = 30;
 
-doc.setFontSize(12);
+  const col = {
+    name: margin,
+    qty: margin + 95,
+    unit: margin + 120,
+    total: pageWidth - margin
+  };
 
-Object.entries(drinkStats).forEach(([name,data])=>{
+  const drawTableHeader = () => {
+    doc.setFillColor(201, 168, 115);
+    doc.rect(margin, y - 5, pageWidth - margin * 2, 8, "F");
+    doc.setTextColor(67, 87, 173);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Getraenk", col.name + 1, y);
+    doc.text("Stueck", col.qty, y, { align: "right" });
+    doc.text("Einzelpreis", col.unit, y, { align: "right" });
+    doc.text("Gesamt", col.total, y, { align: "right" });
+    y += rowHeight + 1;
+  };
 
-const qty = data.qty;
-const price = data.price;
-const total = qty * price;
+  drawTableHeader();
 
-if(qty === 0) return;
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(40, 40, 40);
 
-doc.text(
-`${name} | ${qty}x | ${price.toFixed(2)}€ | ${total.toFixed(2)}€`,
-20,
-y
-);
+  rows.forEach((row, index) => {
+    if (y > pageHeight - 25) {
+      doc.addPage();
+      y = 18;
+      drawTableHeader();
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(40, 40, 40);
+    }
 
-y += 8;
+    if (index % 2 === 0) {
+      doc.setFillColor(245, 245, 245);
+      doc.rect(margin, y - 5, pageWidth - margin * 2, rowHeight, "F");
+    }
 
-if(name !== "Pfand"){
-totalCash += total;
-}
+    doc.text(row.name, col.name + 1, y);
+    doc.text(String(row.qty), col.qty, y, { align: "right" });
+    doc.text(fmt(row.price), col.unit, y, { align: "right" });
+    doc.text(fmt(row.total), col.total, y, { align: "right" });
 
-});
+    y += rowHeight;
+  });
 
-y += 10;
+  y += 4;
+  if (y > pageHeight - 22) {
+    doc.addPage();
+    y = 20;
+  }
 
-doc.setFontSize(16);
-doc.text(`Barumsatz: ${totalCash.toFixed(2)}€`,20,y);
+  doc.setFillColor(72, 169, 166);
+  doc.rect(pageWidth - 90, y - 5, 76, 10, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text(`Barumsatz: ${fmt(totalCash)}`, pageWidth - 16, y + 1.5, { align: "right" });
 
-doc.save("kassenabrechnung.pdf");
-
+  doc.save("kassenabrechnung.pdf");
 }
 
 function updateStats() {
@@ -785,13 +845,18 @@ confirmBtn.onclick = () => {
 };
 }
 
-document.getElementById("cancel-reset").onclick = () => {
+const cancelBtn = document.getElementById("cancel-reset");
+if (cancelBtn) {
+  cancelBtn.onclick = () => {
+    clearInterval(resetCountdown);
+    seconds = 5;
 
-  clearInterval(resetCountdown);
-  seconds = 5;
-
-  document.getElementById("reset-modal").classList.remove("active");
-};
+    const resetModal = document.getElementById("reset-modal");
+    if (resetModal) {
+      resetModal.classList.remove("active");
+    }
+  };
+}
 
 // Fullscreen Funktion mit Browser-Kompatibilität
 function enterFullscreen(element) {
