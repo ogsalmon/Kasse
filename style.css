@@ -83,7 +83,6 @@ main {
   display:grid;
   grid-template-columns: 180px 1fr 420px;
   width: 100%;
-  max-width: 1400px;
   height:calc(100vh - 50px);
   margin-top:50px;
   margin-left: auto;
@@ -100,8 +99,8 @@ main {
   gap:12px;
 
   position:sticky;
-  top:60px;
-  height:calc(100vh - 80px);
+  top:50px;
+  height:calc(100vh - 50px);
 }
 
 .drink-card {
@@ -150,8 +149,8 @@ main {
   position:sticky;
   top:50px;
 
-  height:calc(100vh - 82px);
-  max-height:calc(100vh - 82px);
+  height:calc(100vh - 50px);
+  max-height:calc(100vh - 50px);
 
   display:flex;
   overflow:hidden;
@@ -428,8 +427,11 @@ button {
   }
 
   .order-panel {
-    width: 420px;
-    min-width: 420px;
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    height: calc(100vh - 50px);
+    max-height: calc(100vh - 50px);
   }
 
   .order-table {
@@ -484,26 +486,33 @@ button {
   }
 
   .topbar {
-    height: 45px;
+    height: 50px;
   }
 
   .layout {
-    margin-top: 45px;
-    height: calc(100vh - 45px);
+    grid-template-columns: 100px 1fr 280px;
+    margin-top: 50px;
+    height: calc(100vh - 50px);
+  }
+
+  .sidebar {
+    height: calc(100vh - 50px);
+  }
+
+  .order-panel {
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    height: calc(100vh - 50px);
+    max-height: calc(100vh - 50px);
   }
 }
 
 /* Extra aggressive Skalierung für kleine Handys (unter 768px) */
 @media (max-width: 768px) {
-  body {
-    zoom: 0.85;
-    transform-origin: top left;
-  }
-
   .topbar {
     height: 50px;
   }
-
 
   .category {
     min-height: 65px;
@@ -545,8 +554,10 @@ button {
   }
 
   .order-panel {
+    width: 110px;
+    min-width: 110px;
     max-width: 110px;
-    height: calc(100vh - 60px);
+    height: calc(100vh - 50px);
     overflow-y: hidden;
   }
 
@@ -908,7 +919,7 @@ color:var(--blue);
     max-height: calc(100vh - 190px);
   }
   .layout {
-    height: calc(100vh - 190px);
+    height: calc(100vh - 90px);
   }
   
 }
@@ -916,7 +927,7 @@ color:var(--blue);
 @media (max-width: 1024px) {
   .layout {
     grid-template-columns: 100px 1fr 260px;
-    height: calc(100vh - 280px);
+    height: calc(100vh - 90px);
   }
   
   .order-panel {
@@ -941,8 +952,8 @@ color:var(--blue);
   .order-panel {
     width: 260px;
     min-width: 260px;
-    height: calc(100vh - 280px);
-    max-height: calc(100vh - 280px);
+    height: calc(100vh - 900px);
+    max-height: calc(100vh - 90px);
   }
 }
 
