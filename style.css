@@ -29,8 +29,7 @@ main {
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
-  height: calc(100vh - 50px);
-  height: calc(100dvh - 50px);
+  height: 100%;
 }
 
 .nav {
@@ -107,15 +106,14 @@ main {
 .sidebar{
   background:#E4DFDA;
   padding-left: 25px;
- 
 
   display:flex;
   flex-direction:column;
   gap:12px;
 
-  position:sticky;
-  top:50px;
-  height:calc(100vh - 50px);
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .drink-card {
@@ -162,13 +160,7 @@ main {
   width:420px;
   min-width:420px;
 
-  position:sticky;
-  top:50px;
-
-  height:calc(100vh - 50px);
-  height:calc(100dvh - 50px);
-  max-height:calc(100vh - 50px);
-  max-height:calc(100dvh - 50px);
+  height: 100%;
 
   display:flex;
   overflow:hidden;
@@ -439,25 +431,18 @@ button {
   }
 
   .sidebar {
-    height: calc(100vh - 50px);
-    height: calc(100dvh - 50px);
-    top: 50px;
+    height: 100%;
   }
 
   main {
-    height: calc(100vh - 50px);
-    height: calc(100dvh - 50px);
+    height: 100%;
   }
 
   .order-panel {
     width: 100px;
     min-width: 100px;
     max-width: 100px;
-    height: calc(100vh - 50px);
-    height: calc(100dvh - 50px);
-    max-height: calc(100vh - 50px);
-    max-height: calc(100dvh - 50px);
-    top: 50px;
+    height: 100%;
   }
 
   .category {
@@ -597,8 +582,7 @@ button {
   }
 
   main {
-    height: calc(100vh - 50px);
-    height: calc(100dvh - 50px);
+    height: 100%;
     display: flex;
     flex-direction: column;
   }
@@ -610,19 +594,15 @@ button {
   }
 
   .sidebar {
-    height: calc(100vh - 50px);
-    height: calc(100dvh - 50px);
-    top: 50px;
+    height: 100%;
   }
 
   .order-panel {
     width: 100px;
     min-width: 100px;
     max-width: 100px;
-    height: calc(100vh - 50px);
-    height: calc(100dvh - 50px);
+    height: 100%;
     overflow-y: hidden;
-    top: 50px;
   }
 
   .order-table {
