@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kasse</title>
 
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20260319">
 <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 
@@ -15,21 +14,21 @@
 <header class="topbar">
   <div class="logo"></div>
 
-  <div class="nav">
+  <h2 style="display:none;"></h2>
 
-  <a href="history.html" class="nav-btn">
-    <img src="images/historyblue.png">
-    <span>Verlauf</span>
-  </a>
+  <div class="topbar-right">
+    <a href="history.html" class="nav-btn">
+      <img src="images/historyblue.png">
+      <span>Verlauf</span>
+    </a>
 
-  <a href="stats.html" class="nav-btn">
-    <img src="images/registerblue.png">
-    <span>Abrechnung</span>
-  </a>
+    <a href="stats.html" class="nav-btn">
+      <img src="images/registerblue.png">
+      <span>Abrechnung</span>
+    </a>
 
-</div>
-
-<button id="fullscreen-btn">⛶</button>
+    <button id="fullscreen-btn">⛶</button>
+  </div>
 </header>
 
 <div class="layout">
@@ -120,38 +119,7 @@
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<script>
-// Direkter INLINE Fullscreen Code - kein Fehler möglich
-console.log("🔥 INLINE FULLSCREEN CODE STARTET");
-
-const btn = document.getElementById("fullscreen-btn");
-console.log("Button gefunden:", btn);
-
-if (btn) {
-  btn.addEventListener("click", function(e) {
-    console.log("BUTTON GEKLICKT!");
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!document.fullscreenElement) {
-      console.log("Starte Fullscreen...");
-      document.documentElement.requestFullscreen().catch(err => {
-        console.error("Fehler:", err.message);
-      });
-    } else {
-      console.log("Beende Fullscreen...");
-      document.exitFullscreen().catch(err => {
-        console.error("Fehler beim Beenden:", err.message);
-      });
-    }
-  });
-  console.log("✅ Fullscreen-Handler registriert");
-} else {
-  console.log("❌ Button nicht gefunden");
-}
-</script>
-
-<script src="script.js"></script>
+<script src="script.js?v=20260319"></script>
 
 </body>
 </html>

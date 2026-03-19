@@ -836,13 +836,42 @@ function isFullscreen() {
            document.mozFullScreenElement || document.msFullscreenElement);
 }
 
+function ensureTopbarUi() {
+  const topbar = document.querySelector(".topbar");
+  if (!topbar) {
+    return null;
+  }
+
+  const legacyNav = topbar.querySelector(".nav");
+  if (legacyNav && !legacyNav.classList.contains("topbar-right")) {
+    legacyNav.classList.add("topbar-right");
+  }
+
+  let fsBtn = document.getElementById("fullscreen-btn");
+  if (!fsBtn) {
+    fsBtn = document.createElement("button");
+    fsBtn.id = "fullscreen-btn";
+    fsBtn.type = "button";
+    fsBtn.textContent = "⛶";
+    topbar.appendChild(fsBtn);
+    console.log("✓ Vollscreen-Button automatisch hinzugefuegt");
+  }
+
+  return fsBtn;
+}
+
 function initFullscreenButton() {
-  const fsBtn = document.getElementById("fullscreen-btn");
+  const fsBtn = ensureTopbarUi();
   
   if(!fsBtn) {
     console.warn("❌ Vollscreen-Button nicht im DOM gefunden");
     return;
   }
+
+  if (fsBtn.dataset.boundFullscreen === "true") {
+    return;
+  }
+  fsBtn.dataset.boundFullscreen = "true";
   
   console.log("✓ Vollscreen-Button gefunden, registriere Handler");
   
