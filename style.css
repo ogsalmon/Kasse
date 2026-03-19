@@ -1,0 +1,971 @@
+*{
+  box-sizing:border-box;
+}
+
+:root {
+  --blue: #4357AD;
+  --grey: #E4DFDA;
+  --white: #FBFBFB;
+  --turquoise: #48A9A6;
+  --red: #C1666B;
+  --ocre: #D4B483;
+}
+
+body {
+  font-family: 'Urbanist', sans-serif;
+  margin: 0;
+  background: var(--grey);
+}
+
+.screen {
+  height: 100vh;
+}
+
+.hidden {
+  display: none;
+}
+
+main {
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+.nav {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  text-decoration: none;
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.nav-btn img {
+  width: 20px;
+}
+
+.nav-btn:active {
+  transform: scale(0.92);
+}
+
+.topbar h2{
+  color: var(--blue);
+  font-weight: 700;
+  margin:0;
+}
+
+.topbar{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+
+  height:50px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  padding:0 16px;
+
+  background:white;
+  z-index:1000;
+}
+
+.layout{
+  display:grid;
+  grid-template-columns: 180px 1fr 420px;
+  width: 100%;
+  max-width: 1400px;
+  height:calc(100vh - 50px);
+  margin-top:50px;
+  margin-left: auto;
+  margin-right: auto;
+  overflow: hidden;
+}
+
+.sidebar{
+  background:#E4DFDA;
+ 
+
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+
+  position:sticky;
+  top:60px;
+  height:calc(100vh - 80px);
+}
+
+.drink-card {
+  background: var(--blue);
+  color: white;
+  border-radius: 5px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 70px;
+  font-weight: 600;
+}
+
+.drink-card:active {
+  transform: scale(0.96);
+}
+
+.drink-bottom {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.drink-price {
+  font-weight: 700;
+}
+
+.drink-volume {
+  font-weight: 300;
+  font-size: 0.9rem;
+  opacity: 0.6;
+}
+
+.drink-grid {
+  padding: 25px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.order-panel{
+  width:420px;
+  min-width:420px;
+
+  position:sticky;
+  top:50px;
+
+  height:calc(100vh - 82px);
+  max-height:calc(100vh - 82px);
+
+  display:flex;
+  overflow:hidden;
+}
+
+.order-table {
+  background: #ECECEC;
+  border-radius: 5px;
+  padding: 10px;
+  width: 100%;
+  height: 100%;
+
+  display: grid;
+  grid-template-rows:
+    auto   /* header */
+    1fr    /* list */
+    auto   /* pfand buttons */
+    auto   /* total */
+    auto;  /* IN button */
+
+  min-height: 0;
+}
+
+.order-header {
+  background: #C9A873;
+  border-radius: 5px;
+  padding: 10px 16px;
+  color: #4357AD;
+  font-weight: 600;
+  margin: 0 6px 10px 6px;
+}
+
+.order-header span:nth-child(2),
+.order-row .qty-controls {
+  justify-self: center;
+}
+
+.price {
+  text-align: center;
+}
+.order-header span:nth-child(3),
+.order-row .price {
+  justify-self: center;
+}
+
+.order-header,
+.order-row{
+  display:grid;
+  grid-template-columns: 2fr 80px 30px 40px;
+  align-items:center;
+}
+
+#current-order {
+  padding: 0 6px;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-gutter: stable;
+}
+
+.order-row{
+gap:10px;
+color: #4357AD;
+}
+
+.order-row div:first-child{
+overflow:hidden;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+
+.qty-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.qty-btn {
+  font-size: 26px;
+  font-weight: 700;
+  border: none;
+  background: none;
+  color: #4357AD;
+  cursor: pointer;
+}
+
+.delete-btn img {
+  border:none;
+  background:none;
+  padding:0;
+  cursor:pointer;
+}
+
+.deposit-area {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.deposit-add {
+  flex: 1;
+  background: #4FA5A0;
+  border: none;
+  border-radius: 5px;
+  padding: 12px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deposit-remove {
+  flex: 1;
+  background: #C15F63;
+  border: none;
+  border-radius: 5px;
+  padding: 12px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+
+.order-total {
+  border-top: 2px solid #d4d4d4;
+  margin-top: 18px;
+  padding-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  color: #4357AD;
+  font-weight: 700;
+}
+
+.finish-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px;
+  background: #4357AD;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+}
+
+/* Kategorien Sidebar */
+
+.category {
+  min-height: 85px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  padding: 16px 10px;
+  border-radius: 5px;
+
+  background: transparent;
+  color: #4357AD;
+
+  font-weight: 600;
+  font-size: 15px;
+
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+/* Icon */
+.category img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+/* Aktive Kategorie */
+.category.active {
+  background: #4357AD;
+  color: #FBFBFB;
+}
+
+/* Tablet Klick Effekt */
+.category:active {
+  transform: scale(0.97);
+}
+
+.page{
+  padding-top:80px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+}
+
+.page-header h1 {
+  margin: 0;
+  color: var(--blue);
+  font-weight: 700;
+}
+
+#reset-btn {
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#reset-btn:active {
+  transform: scale(0.95);
+}
+
+#history {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  #history {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile Skalierung - gleich Layout wie PC, nur kleiner */
+@media (max-width: 1024px) {
+  body {
+    font-size: 13px;
+  }
+
+
+  .category {
+    min-height: 70px;
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+
+  .category img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .drink-card {
+    padding: 12px;
+    min-height: 60px;
+  }
+
+  .drink-bottom {
+    margin-top: 6px;
+  }
+
+  .drink-name {
+    font-size: 12px;
+  }
+
+  .drink-price {
+    font-size: 12px;
+  }
+
+  .drink-volume {
+    font-size: 10px;
+  }
+
+  .order-panel {
+    width: 420px;
+    min-width: 420px;
+  }
+
+  .order-table {
+    padding: 6px;
+  }
+
+  .order-header {
+    padding: 6px 8px;
+    margin: 0 3px 6px 3px;
+    font-size: 9px;
+  }
+
+  .order-header,
+  .order-row {
+    grid-template-columns: 0.6fr 70px 60px 30px;
+    gap: 4px;
+  }
+
+  .qty-controls {
+    gap: 8px;
+  }
+
+  .qty-btn {
+    font-size: 18px;
+  }
+
+  .order-row {
+    font-size: 10px;
+  }
+
+  .deposit-area {
+    margin-top: 8px;
+    gap: 6px;
+  }
+
+  .deposit-add,
+  .deposit-remove {
+    padding: 6px;
+    font-size: 9px;
+  }
+
+  .order-total {
+    margin-top: 8px;
+    padding-top: 6px;
+    font-size: 10px;
+  }
+
+  .finish-btn {
+    padding: 8px;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .topbar {
+    height: 45px;
+  }
+
+  .layout {
+    margin-top: 45px;
+    height: calc(100vh - 45px);
+  }
+}
+
+/* Extra aggressive Skalierung für kleine Handys (unter 768px) */
+@media (max-width: 768px) {
+  body {
+    zoom: 0.85;
+    transform-origin: top left;
+  }
+
+  .topbar {
+    height: 50px;
+  }
+
+
+  .category {
+    min-height: 65px;
+    padding: 10px 6px;
+    font-size: 11px;
+  }
+
+  .category img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .drink-card {
+    padding: 10px;
+    min-height: 55px;
+  }
+
+  .drink-name {
+    font-size: 10px;
+  }
+
+  .drink-price {
+    font-size: 10px;
+  }
+
+  .drink-volume {
+    font-size: 8px;
+  }
+
+  .drink-grid {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .layout {
+    margin-top: 50px;
+    height: calc(100vh - 50px);
+    grid-template-columns: 100px 1fr 110px;
+  }
+
+  .order-panel {
+    max-width: 110px;
+    height: calc(100vh - 60px);
+    overflow-y: hidden;
+  }
+
+  .order-table {
+    padding: 6px;
+    grid-template-rows:
+      auto
+      1fr
+      auto
+      auto
+      auto;
+  }
+
+  .order-header {
+    padding: 6px 8px;
+    margin: 0 3px 6px 3px;
+    font-size: 9px;
+  }
+
+  .order-header,
+  .order-row {
+    grid-template-columns: 1fr 25px;
+    gap: 3px;
+  }
+
+  .order-header span:nth-child(2),
+  .order-header span:nth-child(3),
+  .order-row .qty-controls,
+  .order-row .price {
+    display: none;
+  }
+
+  .qty-btn {
+    font-size: 16px;
+  }
+
+  .order-row {
+    font-size: 9px;
+    padding: 2px;
+  }
+
+  .delete-btn img {
+    width: 18px;
+  }
+
+  .deposit-area {
+    margin-top: 6px;
+    gap: 4px;
+  }
+
+  .deposit-add,
+  .deposit-remove {
+    padding: 5px;
+    font-size: 8px;
+  }
+
+  .order-total {
+    margin-top: 6px;
+    padding-top: 6px;
+    font-size: 9px;
+  }
+
+  .finish-btn {
+    padding: 6px;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+}
+
+.history-card {
+  background: #ECECEC;
+  border-radius: 8px;
+  padding: 18px 20px;
+
+  display: grid;
+  grid-template-columns: 1fr 40px;
+  align-items: center;
+}
+
+.history-items span {
+  min-width: 50px;
+  text-align: right;
+}
+
+.history-items {
+  color: #4357AD;
+  font-size: 15px;
+  padding-right: 15px;
+}
+
+.history-time {
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.history-total {
+  margin-top: 6px;
+  font-weight: 700;
+}
+
+.history-delete img {
+  width: 26px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: 1fr 80px;
+  align-items: center;
+}
+
+.history-items div {
+  display: flex;
+  justify-content: space-between;
+    padding-right: 10px;
+}
+
+.stats-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.stats-card {
+  background: white;
+  border-radius: 10px;
+  padding: 28px 32px;
+  width: 100%;
+  max-width: 1500px;
+}
+
+.stats-header,
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 120px 140px;
+  align-items: center;
+  padding: 8px 10px;
+}
+
+.stats-header {
+  background: #C9A873;
+  border-radius: 5px;
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.stat-row {
+  color: var(--blue);
+}
+
+.stat-row div:nth-child(2),
+.stat-row div:nth-child(3),
+.stat-row div:nth-child(4),
+.stats-header div:nth-child(2),
+.stats-header div:nth-child(3),
+.stats-header div:nth-child(4) {
+  text-align: center;
+}
+
+.stats-total {
+  margin-top: 25px;
+  padding-top: 12px;
+  border-top: 2px solid #d4d4d4;
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  color: var(--blue);
+  font-size: 18px;
+}
+
+.bartender-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 10px 24px;
+  flex-wrap: wrap;
+  margin-top:60px;
+}
+
+.bartender-tab {
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: #ECECEC;
+  color: var(--blue);
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bartender-tab.active {
+  background: var(--blue);
+  color: white;
+}
+
+.history-bartender {
+  font-weight: 700;
+  color: var(--blue);
+}
+
+.system-remove {
+  width: 200px;
+  background: #C15F63;
+  border: none;
+  border-radius: 5px;
+  padding: 12px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.35);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+}
+
+.modal-card{
+  background:white;
+  border-radius:16px;
+  padding:30px;
+  width:340px;
+  text-align:center;
+  box-shadow:0 8px 30px rgba(0,0,0,0.15);
+}
+
+.modal-buttons{
+  display:flex;
+  justify-content:space-between;
+  margin-top:20px;
+}
+
+.modal button{
+  padding:10px 18px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+}
+
+#fullscreen-btn{
+background:transparent;
+border:none;
+font-size:22px;
+cursor:pointer;
+color:var(--blue);
+}
+
+.reset-modal{
+  position: fixed;
+  inset: 0;
+
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 999;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.2s ease;
+}
+
+.reset-modal.active{
+  opacity: 1;
+  pointer-events: all;
+}
+
+.reset-box{
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 350px;
+
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+
+  text-align: center;
+  animation: popup 0.2s ease;
+}
+
+@keyframes popup{
+  from{
+    transform: scale(0.9);
+    opacity:0;
+  }
+  to{
+    transform: scale(1);
+    opacity:1;
+  }
+}
+
+.reset-box h2{
+  margin-bottom: 10px;
+  font-size: 20px;
+}
+
+.reset-box p{
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.reset-buttons{
+  display: flex;
+  gap: 10px;
+}
+
+.reset-buttons button{
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  min-height: 40px;
+}
+
+/* Abbrechen */
+#cancel-reset{
+  background: #eee;
+}
+
+/* Zurücksetzen (Danger) */
+#confirm-reset{
+  background: #C15F63;
+  color: white;
+}
+
+.reset-box button:last-child{
+  font-size: 13px;
+  background: none;
+  color: #4357AD;
+  border: none;
+}
+
+#reset-countdown{
+  font-size: 24px;
+  font-weight: bold;
+  color: #C15F63;
+  margin-bottom: 10px;
+}
+
+/* iPad & Tablet Responsive */
+@media (max-width: 1200px) {
+  .order-panel {
+    height: calc(100vh - 190px);
+    max-height: calc(100vh - 190px);
+  }
+  .layout {
+    height: calc(100vh - 190px);
+  }
+  
+}
+
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 100px 1fr 260px;
+    height: calc(100vh - 50px);
+  }
+  
+  .order-panel {
+    width: 260px;
+    min-width: 260px;
+    height: calc(100vh - 280px);
+    max-height: calc(100vh - 280px);
+    top: 50px;
+  }
+
+  .drink-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 12px;
+  }
+  
+  .sidebar {
+    height: calc(100vh - 100px);
+  }
+}
+
+@media (max-width: 900px) {
+  .order-panel {
+    width: 260px;
+    min-width: 260px;
+    height: calc(100vh - 280px);
+    max-height: calc(100vh - 280px);
+  }
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .order-panel {
+    width: 100%;
+    min-width: 100%;
+    height: auto;
+    max-height: none;
+    position: relative;
+    top: 0;
+  }
+
+  .sidebar {
+    position: relative;
+    top: 0;
+    height: auto;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kassenabrechnung</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<header class="topbar">
+<a href="index.html" class="nav-btn">
+<img src="images/backblue.png">
+<span>Zurück</span>
+</a>
+<h2>Kassenabrechnung</h2>
+</header>
+
+<div class="page">
+<div id="stats"></div>
+</div>
+
+<div class="page-header">
+<button id="reset-btn" class="system-remove">
+System zurücksetzen
+</button>
+</div>
+
+
+<div id="reset-modal" class="reset-modal">
+
+<div class="reset-box">
+
+<h2>System zurücksetzen</h2>
+<p>Alle Bestellungen werden gelöscht.</p>
+
+<div id="reset-countdown"></div>
+
+<div class="reset-buttons">
+<button id="cancel-reset">Abbrechen</button>
+<button id="confirm-reset">Zurücksetzen</button>
+</div>
+<button onclick="downloadPDF()">PDF Export</button>
+
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+
+</body>
+</html>

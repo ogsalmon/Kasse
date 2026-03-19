@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasse</title>
+
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<header class="topbar">
+  <div class="logo"></div>
+
+  <div class="nav">
+
+  <a href="history.html" class="nav-btn">
+    <img src="images/historyblue.png">
+    <span>Verlauf</span>
+  </a>
+
+  <a href="stats.html" class="nav-btn">
+    <img src="images/registerblue.png">
+    <span>Abrechnung</span>
+  </a>
+
+</div>
+
+<button id="fullscreen-btn">⛶</button>
+</header>
+
+<div class="layout">
+
+  
+
+<!-- Sidebar -->
+<div class="sidebar">
+
+  <div class="category active"
+       onclick="showCategory(event, 'all')">
+    <span>Alles</span>
+  </div>
+
+  <div class="category"
+       onclick="showCategory(event, 'bier')"
+       data-icon="images/beerblue.png"
+       data-icon-active="images/beerwhite.png">
+    <img src="images/beerblue.png">
+    <span>Bier</span>
+  </div>
+
+  <div class="category"
+       onclick="showCategory(event, 'longdrink')"
+       data-icon="images/longdrinksblue.png"
+       data-icon-active="images/longdrinkswhite.png">
+    <img src="images/longdrinksblue.png">
+    <span>Longdrinks</span>
+  </div>
+
+  <div class="category"
+       onclick="showCategory(event, 'shot')"
+       data-icon="images/shotsblue.png"
+       data-icon-active="images/shotswhite.png">
+    <img src="images/shotsblue.png">
+    <span>Shots</span>
+  </div>
+
+  <div class="category"
+       onclick="showCategory(event, 'soft')"
+       data-icon="images/alcfreeblue.png"
+       data-icon-active="images/alcfreewhite.png">
+    <img src="images/alcfreeblue.png">
+    <span>Alkoholfrei</span>
+  </div>
+
+</div>
+
+<!-- Getränke -->
+<main>
+  <div id="drink-grid" class="drink-grid"></div>
+</main>
+
+<!-- Bestellung -->
+<section class="order-panel">
+
+  <div class="order-table">
+
+    <div class="order-header">
+      <span>Getränk</span>
+      <span>Stück</span>
+      <span>Preis</span>
+      <span></span>
+    </div>
+
+    <div id="current-order"></div>
+
+    <div class="deposit-area">
+      <button class="deposit-add" onclick="addDeposit()">+ Pfand</button>
+      <button class="deposit-remove" onclick="addDepositReturn()">- Pfand</button>
+    </div>
+
+    <div class="order-total">
+      <span>Gesamt:</span>
+      <span id="current-total">0.00€</span>
+    </div>
+
+    <button class="finish-btn" onclick="finishOrder()">IN</button>
+
+  </div>
+
+</section>
+
+</div>
+
+<script>
+  console.log("✅ HTML Inline Script lädt!");
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script>
+// Direkter INLINE Fullscreen Code - kein Fehler möglich
+console.log("🔥 INLINE FULLSCREEN CODE STARTET");
+
+const btn = document.getElementById("fullscreen-btn");
+console.log("Button gefunden:", btn);
+
+if (btn) {
+  btn.addEventListener("click", function(e) {
+    console.log("BUTTON GEKLICKT!");
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!document.fullscreenElement) {
+      console.log("Starte Fullscreen...");
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error("Fehler:", err.message);
+      });
+    } else {
+      console.log("Beende Fullscreen...");
+      document.exitFullscreen().catch(err => {
+        console.error("Fehler beim Beenden:", err.message);
+      });
+    }
+  });
+  console.log("✅ Fullscreen-Handler registriert");
+} else {
+  console.log("❌ Button nicht gefunden");
+}
+</script>
+
+<script src="script.js"></script>
+
+</body>
+</html>
