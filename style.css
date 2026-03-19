@@ -30,6 +30,7 @@ main {
   overflow-x: hidden;
   min-height: 0;
   height: calc(100vh - 50px);
+  height: calc(100dvh - 50px);
 }
 
 .nav {
@@ -96,6 +97,7 @@ main {
   grid-template-columns: 180px 1fr 420px;
   width: 100%;
   height:calc(100vh - 50px);
+  height:calc(100dvh - 50px);
   margin-top:50px;
   margin-left: auto;
   margin-right: auto;
@@ -164,7 +166,9 @@ main {
   top:50px;
 
   height:calc(100vh - 50px);
+  height:calc(100dvh - 50px);
   max-height:calc(100vh - 50px);
+  max-height:calc(100dvh - 50px);
 
   display:flex;
   overflow:hidden;
@@ -375,6 +379,7 @@ button {
 .accounting-page .page {
   margin-top: 50px;
   height: calc(100vh - 50px);
+  height: calc(100dvh - 50px);
   max-height: none;
   padding-bottom: 20px;
 }
@@ -430,15 +435,18 @@ button {
     grid-template-columns: 80px 1fr 100px;
     margin-top: 50px;
     height: calc(100vh - 50px);
+    height: calc(100dvh - 50px);
   }
 
   .sidebar {
     height: calc(100vh - 50px);
+    height: calc(100dvh - 50px);
     top: 50px;
   }
 
   main {
     height: calc(100vh - 50px);
+    height: calc(100dvh - 50px);
   }
 
   .order-panel {
@@ -446,7 +454,9 @@ button {
     min-width: 100px;
     max-width: 100px;
     height: calc(100vh - 50px);
+    height: calc(100dvh - 50px);
     max-height: calc(100vh - 50px);
+    max-height: calc(100dvh - 50px);
     top: 50px;
   }
 
@@ -582,11 +592,13 @@ button {
   .layout {
     margin-top: 50px;
     height: calc(100vh - 50px);
+    height: calc(100dvh - 50px);
     grid-template-columns: 80px 1fr 100px;
   }
 
   main {
     height: calc(100vh - 50px);
+    height: calc(100dvh - 50px);
     display: flex;
     flex-direction: column;
   }
@@ -599,6 +611,7 @@ button {
 
   .sidebar {
     height: calc(100vh - 50px);
+    height: calc(100dvh - 50px);
     top: 50px;
   }
 
@@ -607,6 +620,7 @@ button {
     min-width: 100px;
     max-width: 100px;
     height: calc(100vh - 50px);
+    height: calc(100dvh - 50px);
     overflow-y: hidden;
     top: 50px;
   }
