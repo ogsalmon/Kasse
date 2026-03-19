@@ -29,6 +29,7 @@ main {
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+  height: calc(100vh - 50px);
 }
 
 .nav {
@@ -499,6 +500,10 @@ button {
     height: calc(100vh - 50px);
   }
 
+  main {
+    height: calc(100vh - 50px);
+  }
+
   .order-panel {
     width: 280px;
     min-width: 280px;
@@ -551,6 +556,10 @@ button {
     margin-top: 50px;
     height: calc(100vh - 50px);
     grid-template-columns: 100px 1fr 110px;
+  }
+
+  main {
+    height: calc(100vh - 50px);
   }
 
   .order-panel {
