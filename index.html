@@ -82,8 +82,21 @@
   <div id="drink-grid" class="drink-grid"></div>
 </main>
 
+<div class="mobile-order-bar">
+  <button id="order-toggle" class="order-toggle" type="button">
+    Bestellung
+  </button>
+  <div class="mobile-order-total">
+    <span>Gesamt</span>
+    <strong id="mobile-total">0.00€</strong>
+  </div>
+  <button class="finish-btn mobile-finish-btn" onclick="finishOrder()">IN</button>
+</div>
+
+<div id="order-backdrop" class="order-backdrop"></div>
+
 <!-- Bestellung -->
-<section class="order-panel">
+<section class="order-panel" id="order-panel">
 
   <div class="order-table">
 
@@ -103,7 +116,7 @@
 
     <div class="order-total">
       <span>Gesamt:</span>
-      <span id="current-total">0.00€</span>
+      <span id="current-total" style="cursor: pointer;">0.00€</span>
     </div>
 
     <button class="finish-btn" onclick="finishOrder()">IN</button>
@@ -111,6 +124,14 @@
   </div>
 
 </section>
+
+<div id="price-modal" class="modal">
+  <div class="modal-card">
+    <div style="font-size: 16px; color: #999; margin-bottom: 12px;">Gesamtpreis</div>
+    <div id="modal-price" style="font-size: 56px; font-weight: 700; color: #4357AD; margin-bottom: 20px;">0.00€</div>
+    <div style="font-size: 12px; color: #999;">Zum Schließen überall klicken</div>
+  </div>
+</div>
 
 </div>
 

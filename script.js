@@ -25,8 +25,10 @@ const drinks = [
   //Biere
   { id: "helles", name: "Helles", volume: "0,5 l", price: 5.00, deposit: 1.00, category: "bier" },
   { id: "pils", name: "Pils", volume: "0,3 l", price: 4.50, deposit: 1.00, category: "bier" },
-  { id: "alkfrei_bier", name: "Schattenhofer Alkoholfrei", volume: "0,5 l", price: 4.50, deposit: 1.00, category: "bier" },
+  { id: "alkfrei_bier", name: "Schattenhofer Alkoholfrei", volume: "0,5 l", price: 5.00, deposit: 1.00, category: "bier" },
   { id: "weizen", name: "Gutmann Weizen", volume: "0,5 l", price: 5.00, deposit: 1.00, category: "bier" },
+  { id: "radler", name: "Radler", volume: "0,5 l", price: 5.00, deposit: 1.00, category: "bier" },
+  { id: "desperados", name: "Desperados", volume: "0,33 l", price: 7.00, deposit: 1.00, category: "bier" },
 
   //Longdrinks / Cocktails
   { id: "vodka_rb", name: "Vodka & Red Bull", volume: "0,4 l", price: 9.00, deposit: 1.00, category: "longdrink" },
@@ -35,18 +37,20 @@ const drinks = [
   { id: "gin_tonic", name: "Gin Tonic", volume: "0,4 l", price: 9.00, deposit: 1.00, category: "longdrink" },
   { id: "prosecco", name: "Prosecco auf Eis", volume: "0,4 l", price: 6.00, deposit: 1.00, category: "longdrink" },
   { id: "weinschorle", name: "Weißweinschorle", volume: "0,3 l", price: 6.00, deposit: 1.00, category: "longdrink" },
+  { id: "aperol", name: "Aperol Spritz", volume: "0,4 l", price: 8.00, deposit: 1.00, category: "longdrink" },
 
   //Shots (kein Pfand)
   { id: "shot_vodka", name: "Vodka", volume: "0,02 l", price: 3.00, deposit: 0.00, category: "shot" },
   { id: "shot_jaeger", name: "Jägermeister", volume: "0,02 l", price: 3.00, deposit: 0.00, category: "shot" },
-  { id: "shot_pfeffi", name: "Pfeffi", volume: "0,02 l", price: 3.00, deposit: 0.00, category: "shot" },
+  { id: "shot_berlinerluft", name: "Berliner Luft", volume: "0,02 l", price: 3.00, deposit: 0.00, category: "shot" },
   { id: "shot_ficken", name: "Ficken", volume: "0,02 l", price: 3.00, deposit: 0.00, category: "shot" },
+  { id: "shot_vodka_grün", name: "Grüner Vodka", volume: "0,02 l", price: 3.00, deposit: 0.00, category: "shot" },
 
   //Alkoholfrei
   { id: "wasser_s", name: "Wasser spritzig", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
   { id: "wasser_still", name: "Wasser still", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
-  { id: "limo", name: "Zitronenlimonade", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
   { id: "cola", name: "Coca-Cola", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
+  { id: "cola_zero", name: "Coca-Cola Zero", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
   { id: "spezi", name: "Spezi", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
   { id: "apfel", name: "Apfelsaftschorle", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
   { id: "redbull", name: "Red Bull Dose", volume: "0,25 l", price: 5.00, deposit: 1.00, category: "soft" }
@@ -67,6 +71,32 @@ const DEPOSIT_RETURN_ITEM = {
   deposit: 0,
   qty: 1
 };
+
+function getCaseSizeByVolume(volume) {
+  if (volume === "0,5 l" || volume === "0,4 l") {
+    return 20;
+  }
+
+  if (volume === "0,33 l" || volume === "0,3 l") {
+    return 24;
+  }
+
+  return null;
+}
+
+function isBottledDrink(category) {
+  // Only beer and soft drinks (non-alcoholic) come in crates
+  return category === "bier" || category === "soft";
+}
+
+function getCaseCount(qty, caseSize, category) {
+  if (!isBottledDrink(category) || !caseSize || qty <= 0) {
+    return null;
+  }
+
+  // Calculate decimal number of crates
+  return Math.round((qty / caseSize) * 100) / 100;
+}
 
 
 let currentOrder = [];
@@ -146,6 +176,71 @@ document.addEventListener("DOMContentLoaded", () => {
     showCategory({ currentTarget: firstCategory }, "all")
   }
 
+  // Price modal handlers
+  const currentTotalEl = document.getElementById("current-total");
+  const mobileTotalEl = document.getElementById("mobile-total");
+  const priceModal = document.getElementById("price-modal");
+
+  if (priceModal) {
+    const openPriceModal = () => {
+      priceModal.style.display = "flex";
+    };
+
+    if (currentTotalEl) {
+      currentTotalEl.addEventListener("click", openPriceModal);
+    }
+
+    if (mobileTotalEl) {
+      mobileTotalEl.addEventListener("click", openPriceModal);
+    }
+
+    priceModal.addEventListener("click", (e) => {
+      if (e.target === priceModal) {
+        priceModal.style.display = "none";
+      }
+    });
+  }
+
+  const orderPanel = document.getElementById("order-panel");
+  const orderToggle = document.getElementById("order-toggle");
+  const orderBackdrop = document.getElementById("order-backdrop");
+
+  if (orderPanel && orderToggle && orderBackdrop) {
+    const isMobile = () => window.innerWidth <= 900;
+
+    const closeDrawer = () => {
+      orderPanel.classList.remove("open");
+      orderBackdrop.classList.remove("active");
+      orderToggle.textContent = "Bestellung";
+    };
+
+    const openDrawer = () => {
+      orderPanel.classList.add("open");
+      orderBackdrop.classList.add("active");
+      orderToggle.textContent = "Schliessen";
+    };
+
+    orderToggle.addEventListener("click", () => {
+      if (!isMobile()) return;
+
+      if (orderPanel.classList.contains("open")) {
+        closeDrawer();
+      } else {
+        openDrawer();
+      }
+    });
+
+    orderBackdrop.addEventListener("click", closeDrawer);
+
+    window.addEventListener("resize", () => {
+      if (!isMobile()) {
+        closeDrawer();
+      }
+    });
+
+    closeDrawer();
+  }
+
 });
 
 function addDrink(drink) {
@@ -189,19 +284,24 @@ function updateCurrentOrder() {
 
   list.innerHTML = "";
 
-  const sortedOrder = [...currentOrder].sort((a, b) => {
-  if (a.id === "deposit") return 1;
-  if (b.id === "deposit") return -1;
-  return 0;
-});
+  // Calculate net deposit amount (deposit - returns)
+  const depositQty = currentOrder
+    .filter(o => o.id === "deposit")
+    .reduce((sum, o) => sum + o.qty, 0);
 
-sortedOrder.forEach(o => {
+  const depositReturnQty = currentOrder
+    .filter(o => o.id === "deposit_return")
+    .reduce((sum, o) => sum + o.qty, 0);
+
+  const netDeposit = depositQty - depositReturnQty;
+
+  // Filter out deposit/deposit_return items and sort remaining items
+  const displayOrder = currentOrder
+    .filter(o => o.id !== "deposit" && o.id !== "deposit_return");
+
+  displayOrder.forEach(o => {
     const row = document.createElement("div");
     row.className = "order-row";
-
-    if (o.id === "deposit") {
-        row.style.fontWeight = "700";
-    }
 
     const name = document.createElement("div");
     name.textContent = o.name;
@@ -261,13 +361,83 @@ sortedOrder.forEach(o => {
     list.appendChild(row);
   });
 
+  // Add net deposit row if there's any deposit
+  if (netDeposit !== 0) {
+    const depositRow = document.createElement("div");
+    depositRow.className = "order-row";
+    depositRow.style.fontWeight = "700";
+
+    const depositName = document.createElement("div");
+    depositName.textContent = "Pfand";
+
+    const depositQtyBox = document.createElement("div");
+    depositQtyBox.className = "qty-controls";
+
+    const depositMinus = document.createElement("button");
+    depositMinus.className = "qty-btn";
+    depositMinus.textContent = "−";
+
+    const depositQtySpan = document.createElement("span");
+    depositQtySpan.textContent = netDeposit + "x";
+    depositQtySpan.style.fontWeight = "600";
+
+    const depositPlus = document.createElement("button");
+    depositPlus.className = "qty-btn";
+    depositPlus.textContent = "+";
+
+    depositMinus.onclick = () => {
+      addDepositReturn();
+    };
+
+    depositPlus.onclick = () => {
+      addDeposit();
+    };
+
+    depositQtyBox.appendChild(depositMinus);
+    depositQtyBox.appendChild(depositQtySpan);
+    depositQtyBox.appendChild(depositPlus);
+
+    const depositPrice = document.createElement("div");
+    depositPrice.textContent = (netDeposit * 1.0).toFixed(2) + "€";
+
+    const depositDel = document.createElement("button");
+    depositDel.className = "delete-btn";
+    depositDel.innerHTML = `<img src="images/deleteblue.png">`;
+
+    depositDel.onclick = () => {
+      currentOrder = currentOrder.filter(x => x.id !== "deposit" && x.id !== "deposit_return");
+      updateCurrentOrder();
+    };
+
+    depositRow.appendChild(depositName);
+    depositRow.appendChild(depositQtyBox);
+    depositRow.appendChild(depositPrice);
+    depositRow.appendChild(depositDel);
+
+    list.appendChild(depositRow);
+  }
+
   const total = currentOrder.reduce(
     (sum, o) => sum + o.qty * o.price,
     0
   );
 
-  document.getElementById("current-total").textContent =
-total.toFixed(2) + "€";
+  const totalText = total.toFixed(2) + "€";
+  const totalEl = document.getElementById("current-total");
+  const modalPriceEl = document.getElementById("modal-price");
+  const mobileTotalEl = document.getElementById("mobile-total");
+
+  if (totalEl) {
+    totalEl.textContent = totalText;
+  }
+
+  if (modalPriceEl) {
+    modalPriceEl.textContent = totalText;
+  }
+
+  if (mobileTotalEl) {
+    mobileTotalEl.textContent = totalText;
+  }
 }
 
 async function finishOrder() {
@@ -332,7 +502,9 @@ function downloadPDF(){
   drinks.forEach(d => {
     drinkStats[d.name] = {
       qty: 0,
-      price: d.price
+      price: d.price,
+      volume: d.volume,
+      category: d.category
     };
   });
 
@@ -341,7 +513,9 @@ function downloadPDF(){
       if (!drinkStats[item.name]) {
         drinkStats[item.name] = {
           qty: 0,
-          price: item.price
+          price: item.price,
+          volume: null,
+          category: null
         };
       }
 
@@ -354,7 +528,9 @@ function downloadPDF(){
       const qty = data.qty;
       const price = data.price;
       const total = qty * price;
-      return { name, qty, price, total };
+      const caseSize = getCaseSizeByVolume(data.volume);
+      const cases = getCaseCount(qty, caseSize, data.category);
+      return { name, qty, price, total, cases };
     })
     .filter(r => r.qty > 0)
     .sort((a, b) => b.qty - a.qty || a.name.localeCompare(b.name, "de"));
@@ -380,8 +556,9 @@ function downloadPDF(){
 
   const col = {
     name: margin,
-    qty: margin + 95,
-    unit: margin + 120,
+    qty: margin + 92,
+    cases: margin + 114,
+    unit: margin + 138,
     total: pageWidth - margin
   };
 
@@ -393,6 +570,7 @@ function downloadPDF(){
     doc.setFontSize(10);
     doc.text("Getraenk", col.name + 1, y);
     doc.text("Stueck", col.qty, y, { align: "right" });
+    doc.text("Kaesten", col.cases, y, { align: "right" });
     doc.text("Einzelpreis", col.unit, y, { align: "right" });
     doc.text("Gesamt", col.total, y, { align: "right" });
     y += rowHeight + 1;
@@ -419,6 +597,7 @@ function downloadPDF(){
 
     doc.text(row.name, col.name + 1, y);
     doc.text(String(row.qty), col.qty, y, { align: "right" });
+    doc.text(row.cases === null ? "-" : row.cases.toFixed(2), col.cases, y, { align: "right" });
     doc.text(fmt(row.price), col.unit, y, { align: "right" });
     doc.text(fmt(row.total), col.total, y, { align: "right" });
 
@@ -452,7 +631,9 @@ function updateStats() {
   drinks.forEach(d => {
     drinkStats[d.name] = {
       qty: 0,
-      price: d.price
+      price: d.price,
+      volume: d.volume,
+      category: d.category
     };
   });
 
@@ -463,7 +644,9 @@ function updateStats() {
       if (!drinkStats[item.name]) {
         drinkStats[item.name] = {
           qty: 0,
-          price: item.price
+          price: item.price,
+          volume: null,
+          category: null
         };
       }
 
@@ -480,6 +663,7 @@ function updateStats() {
     <div class="stats-header">
       <div>Getränk</div>
       <div>Stück</div>
+      <div>Kästen</div>
       <div>Preis</div>
       <div>Gesamtpreis</div>
     </div>
@@ -492,12 +676,16 @@ function updateStats() {
     const qty = data.qty;
     const price = data.price;
     const total = qty * price;
+    const caseSize = getCaseSizeByVolume(data.volume);
+    const cases = getCaseCount(qty, caseSize, data.category);
+    const casesLabel = cases === null ? "-" : cases.toFixed(2);
 
     if (name === "Pfand") {
       pfandRow = `
         <div class="stat-row">
           <div>${name}</div>
           <div>${qty}</div>
+          <div>${casesLabel}</div>
           <div>${price.toFixed(2)}€</div>
           <div>${total.toFixed(2)}€</div>
         </div>
@@ -511,6 +699,7 @@ function updateStats() {
       <div class="stat-row">
         <div>${name}</div>
         <div>${qty}</div>
+        <div>${casesLabel}</div>
         <div>${price.toFixed(2)}€</div>
         <div>${total.toFixed(2)}€</div>
       </div>
@@ -641,17 +830,21 @@ localStorage.removeItem("bartender")
 }
 
 function addDepositReturn() {
-   let deposit = currentOrder.find(i => i.id === "deposit")
+  let depositReturn = currentOrder.find(i => i.id === "deposit_return");
 
-  if (!deposit) return
-
-  deposit.qty -= 1
-
-  if (deposit.qty <= 0) {
-    currentOrder = currentOrder.filter(i => i.id !== "deposit")
+  if (depositReturn) {
+    depositReturn.qty += 1;
+  } else {
+    currentOrder.push({
+      id: "deposit_return",
+      name: "Pfand Rückgabe",
+      price: -1.00,
+      deposit: 0,
+      qty: 1
+    });
   }
 
-  updateCurrentOrder()
+  updateCurrentOrder();
 }
 
 function syncDeposit() {
