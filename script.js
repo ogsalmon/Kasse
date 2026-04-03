@@ -567,6 +567,7 @@ async function getLogoDataUrl() {
   if (logoDataUrlCache) return logoDataUrlCache;
 
   const img = new Image();
+  img.crossOrigin = "anonymous";
   img.src = "images/logo.png";
 
   await new Promise((resolve, reject) => {
@@ -603,7 +604,19 @@ async function downloadPDF(){
   const rowHeight = 7;
   let y = 18;
 
+  const palette = {
+    blue: [67, 87, 173],
+    ocre: [201, 168, 115],
+    textDark: [40, 40, 40],
+    rowAlt: [246, 248, 255],
+    white: [255, 255, 255]
+  };
+
   const fmt = (num) => `${num.toFixed(2)} EUR`;
+  const truncate = (text, maxLen = 34) => {
+    if (!text) return "";
+    return text.length > maxLen ? `${text.slice(0, maxLen - 1)}...` : text;
+  };
 
   const drinkStats = {};
 
@@ -650,92 +663,128 @@ async function downloadPDF(){
     }
   });
 
-  doc.setFillColor(67, 87, 173);
-  doc.rect(0, 0, pageWidth, 24, "F");
+  const orderCount = allOrders.length;
+
+  doc.setFillColor(...palette.white);
+  doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+  doc.setFillColor(...palette.blue);
+  doc.rect(0, 0, pageWidth, 30, "F");
+  doc.setFillColor(...palette.ocre);
+  doc.rect(0, 30, pageWidth, 3, "F");
+
   doc.setTextColor(255, 255, 255);
 
   let titleX = margin;
   try {
     const logoDataUrl = await getLogoDataUrl();
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(margin - 1, 3, 24, 18, 2, 2, "F");
-    doc.addImage(logoDataUrl, "PNG", margin, 4, 22, 16);
-    titleX = margin + 28;
+    doc.setFillColor(...palette.white);
+    doc.roundedRect(margin - 1, 4, 28, 20, 2.5, 2.5, "F");
+    doc.addImage(logoDataUrl, "PNG", margin + 1, 5, 26, 20);
+    titleX = margin + 34;
   } catch (error) {
     console.warn("Logo konnte im PDF nicht geladen werden.", error);
   }
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("Kassenabrechnung", titleX, 14);
+  doc.setFontSize(18);
+  doc.text("Kassenabrechnung", titleX, 14.5);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text(new Date().toLocaleString("de-DE"), pageWidth - margin, 14, { align: "right" });
+  doc.text("drinq Export", titleX, 21);
 
-  y = 30;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text("Erstellt:", pageWidth - margin, 11.5, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.text(new Date().toLocaleString("de-DE"), pageWidth - margin, 16, { align: "right" });
+  doc.setFont("helvetica", "bold");
+  doc.text(`Bestellungen: ${orderCount}`, pageWidth - margin, 20.5, { align: "right" });
+
+  y = 42;
 
   const col = {
     name: margin,
-    qty: margin + 92,
-    cases: margin + 114,
-    unit: margin + 138,
+    qty: margin + 104,
+    cases: margin + 124,
+    unit: margin + 145,
     total: pageWidth - margin
   };
 
   const drawTableHeader = () => {
-    doc.setFillColor(201, 168, 115);
-    doc.rect(margin, y - 5, pageWidth - margin * 2, 8, "F");
-    doc.setTextColor(67, 87, 173);
+    doc.setFillColor(...palette.ocre);
+    doc.roundedRect(margin, y - 6, pageWidth - margin * 2, 9, 1.5, 1.5, "F");
+    doc.setTextColor(...palette.blue);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text("Getraenk", col.name + 1, y);
+    doc.text("Getraenk", col.name + 2, y);
     doc.text("Stueck", col.qty, y, { align: "right" });
     doc.text("Kaesten", col.cases, y, { align: "right" });
     doc.text("Einzelpreis", col.unit, y, { align: "right" });
     doc.text("Gesamt", col.total, y, { align: "right" });
-    y += rowHeight + 1;
+    y += rowHeight + 2;
   };
 
   drawTableHeader();
 
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(40, 40, 40);
+  doc.setTextColor(...palette.textDark);
 
   rows.forEach((row, index) => {
-    if (y > pageHeight - 25) {
+    if (y > pageHeight - 28) {
       doc.addPage();
-      y = 18;
+      doc.setFillColor(...palette.blue);
+      doc.rect(0, 0, pageWidth, 12, "F");
+      doc.setFillColor(...palette.ocre);
+      doc.rect(0, 12, pageWidth, 2, "F");
+      doc.setTextColor(...palette.white);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Kassenabrechnung - Fortsetzung", margin, 8);
+
+      y = 20;
       drawTableHeader();
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(40, 40, 40);
+      doc.setTextColor(...palette.textDark);
     }
 
     if (index % 2 === 0) {
-      doc.setFillColor(245, 245, 245);
+      doc.setFillColor(...palette.rowAlt);
       doc.rect(margin, y - 5, pageWidth - margin * 2, rowHeight, "F");
     }
 
-    doc.text(row.name, col.name + 1, y);
+    doc.text(truncate(row.name), col.name + 2, y);
     doc.text(String(row.qty), col.qty, y, { align: "right" });
     doc.text(row.cases === null ? "-" : row.cases.toFixed(2), col.cases, y, { align: "right" });
     doc.text(fmt(row.price), col.unit, y, { align: "right" });
     doc.text(fmt(row.total), col.total, y, { align: "right" });
 
+    doc.setDrawColor(230, 233, 244);
+    doc.line(margin, y + 2.2, pageWidth - margin, y + 2.2);
+
     y += rowHeight;
   });
 
-  y += 4;
-  if (y > pageHeight - 22) {
+  y += 6;
+  if (y > pageHeight - 30) {
     doc.addPage();
     y = 20;
   }
 
-  doc.setFillColor(72, 169, 166);
-  doc.rect(pageWidth - 90, y - 5, 76, 10, "F");
-  doc.setTextColor(255, 255, 255);
+  doc.setDrawColor(...palette.blue);
+  doc.line(margin, y - 4, pageWidth - margin, y - 4);
+  doc.setTextColor(...palette.blue);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Gesamt Barumsatz", margin, y + 1.4);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text(`Barumsatz: ${fmt(totalCash)}`, pageWidth - 16, y + 1.5, { align: "right" });
+  doc.setFontSize(12);
+  doc.text(fmt(totalCash), pageWidth - margin, y + 1.4, { align: "right" });
+
+  doc.setTextColor(130, 130, 130);
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8);
+  doc.text("Erstellt mit drinq Kasse", margin, pageHeight - 8);
 
   doc.save("kassenabrechnung.pdf");
 }
@@ -1059,8 +1108,14 @@ async function initLoginPage() {
 
   // Auto-Login per URL-Parameter (nativer QR-Scan mit Kamera-App)
   const urlParams = new URLSearchParams(window.location.search);
-  const autoUser = urlParams.get("u");
-  const autoPass = urlParams.get("p");
+  const normalizeQrParam = (value) => {
+    return (value || "")
+      .replace(/\u200B/g, "")
+      .trim();
+  };
+
+  const autoUser = normalizeQrParam(urlParams.get("u"));
+  const autoPass = normalizeQrParam(urlParams.get("p"));
 
   if (autoUser && autoPass) {
     if (loginStatus) {
@@ -1071,10 +1126,18 @@ async function initLoginPage() {
     const cleanUrl = window.location.pathname;
     history.replaceState(null, "", cleanUrl);
 
-    const { data: autoData, error: autoError } = await supabaseClient.auth.signInWithPassword({
+    let { data: autoData, error: autoError } = await supabaseClient.auth.signInWithPassword({
       email: usernameToEmail(autoUser),
       password: autoPass
     });
+
+    // Some QR generators or camera apps may transform '+' to spaces in query params.
+    if ((autoError || !autoData?.user) && autoPass.includes(" ")) {
+      ({ data: autoData, error: autoError } = await supabaseClient.auth.signInWithPassword({
+        email: usernameToEmail(autoUser),
+        password: autoPass.replace(/ /g, "+")
+      }));
+    }
 
     if (!autoError && autoData?.user) {
       applyAuthenticatedUser(autoData.user);
