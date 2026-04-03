@@ -5,15 +5,94 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let bartender = localStorage.getItem("bartender");
+const LOGIN_PAGE = "login.html";
+const isLoginPage = window.location.pathname.toLowerCase().endsWith(`/${LOGIN_PAGE}`) || window.location.pathname.toLowerCase().endsWith(LOGIN_PAGE);
+
+let bartender = "";
+let currentUser = null;
 
 let resetTimer = null;
 
-let historyFilter = bartender;
+let historyFilter = "all";
 
-if (!bartender) {
-  bartender = prompt("Name des Barkeepers:");
+function getNextPageFromUrl() {
+  const nextFromQuery = new URLSearchParams(window.location.search).get("next");
+  if (!nextFromQuery) return "index.html";
+
+  if (nextFromQuery.includes("://") || nextFromQuery.startsWith("//")) {
+    return "index.html";
+  }
+
+  return nextFromQuery;
+}
+
+function getBartenderNameFromUser(user) {
+  const email = (user?.email || "").trim().toLowerCase();
+  const username = email.split("@")[0];
+  return username || "Barkeeper";
+}
+
+function applyAuthenticatedUser(user) {
+  currentUser = user;
+  bartender = getBartenderNameFromUser(user);
+  historyFilter = bartender;
   localStorage.setItem("bartender", bartender);
+}
+
+function redirectToLogin() {
+  const currentPage = window.location.pathname.split("/").pop() || "index.html";
+  const next = encodeURIComponent(currentPage);
+  window.location.href = `${LOGIN_PAGE}?next=${next}`;
+}
+
+async function ensureAuthenticatedPage() {
+  if (isLoginPage) return;
+
+  const { data } = await supabaseClient.auth.getSession();
+  const session = data?.session;
+
+  if (!session?.user) {
+    redirectToLogin();
+    return;
+  }
+
+  applyAuthenticatedUser(session.user);
+}
+
+const USERNAME_DOMAIN = "drinq.local";
+
+function usernameToEmail(username) {
+  const clean = username.toLowerCase().trim();
+  return clean.includes("@") ? clean : `${clean}@${USERNAME_DOMAIN}`;
+}
+
+function parseQrCredentials(rawText) {
+  if (!rawText) return null;
+
+  const trimmed = rawText.trim();
+
+  // Format 1: URL mit ?u= und ?p= (nativer Kamerascan)
+  try {
+    const url = new URL(trimmed);
+    const u = url.searchParams.get("u");
+    const p = url.searchParams.get("p");
+    if (u && p) {
+      return { username: u.trim(), password: p.trim() };
+    }
+  } catch (_) {
+    // keine gültige URL, weiter
+  }
+
+  // Format 2: gnlogin:benutzername|passwort (In-App-Kamera)
+  if (trimmed.startsWith("gnlogin:")) {
+    const payload = trimmed.slice("gnlogin:".length);
+    const [username, password] = payload.split("|");
+    if (username && password) {
+      return { username: username.trim(), password: password.trim() };
+    }
+  }
+
+  return null;
 }
 
 
@@ -341,6 +420,7 @@ function updateCurrentOrder() {
     qtyBox.appendChild(plus);
 
     const price = document.createElement("div");
+    price.className = "price";
     price.textContent = (o.qty * o.price).toFixed(2) + "€";
 
     const del = document.createElement("button");
@@ -398,6 +478,7 @@ function updateCurrentOrder() {
     depositQtyBox.appendChild(depositPlus);
 
     const depositPrice = document.createElement("div");
+    depositPrice.className = "price";
     depositPrice.textContent = (netDeposit * 1.0).toFixed(2) + "€";
 
     const depositDel = document.createElement("button");
@@ -480,7 +561,34 @@ async function finishOrder() {
   loadOrdersFromServer();
 }
 
-function downloadPDF(){
+let logoDataUrlCache = null;
+
+async function getLogoDataUrl() {
+  if (logoDataUrlCache) return logoDataUrlCache;
+
+  const img = new Image();
+  img.src = "images/logo.png";
+
+  await new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = reject;
+  });
+
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth || 256;
+  canvas.height = img.naturalHeight || 256;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Canvas-Kontext nicht verfügbar");
+  }
+
+  ctx.drawImage(img, 0, 0);
+  logoDataUrlCache = canvas.toDataURL("image/png");
+  return logoDataUrlCache;
+}
+
+async function downloadPDF(){
   if (!window.jspdf || !window.jspdf.jsPDF) {
     alert("PDF-Bibliothek nicht geladen.");
     return;
@@ -545,9 +653,21 @@ function downloadPDF(){
   doc.setFillColor(67, 87, 173);
   doc.rect(0, 0, pageWidth, 24, "F");
   doc.setTextColor(255, 255, 255);
+
+  let titleX = margin;
+  try {
+    const logoDataUrl = await getLogoDataUrl();
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(margin - 1, 3, 24, 18, 2, 2, "F");
+    doc.addImage(logoDataUrl, "PNG", margin, 4, 22, 16);
+    titleX = margin + 28;
+  } catch (error) {
+    console.warn("Logo konnte im PDF nicht geladen werden.", error);
+  }
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.text("Kassenabrechnung", margin, 14);
+  doc.text("Kassenabrechnung", titleX, 14);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.text(new Date().toLocaleString("de-DE"), pageWidth - margin, 14, { align: "right" });
@@ -872,16 +992,18 @@ function syncDeposit() {
   }
 }
 
-supabaseClient
-  .channel("orders-live")
-  .on(
-    "postgres_changes",
-    { event: "*", schema: "public", table: "orders" },
-    () => {
-      loadOrdersFromServer();
-    }
-  )
-  .subscribe();
+if (!isLoginPage) {
+  supabaseClient
+    .channel("orders-live")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "orders" },
+      () => {
+        loadOrdersFromServer();
+      }
+    )
+    .subscribe();
+}
 
 async function loadOrdersFromServer() {
   const { data, error } = await supabaseClient
@@ -906,8 +1028,6 @@ async function loadOrdersFromServer() {
   renderBartenderTabs();
 }
 
-loadOrdersFromServer();
-
 async function syncOfflineOrders() {
   let offlineOrders =
     JSON.parse(localStorage.getItem("offlineOrders")) || [];
@@ -922,8 +1042,220 @@ async function syncOfflineOrders() {
   loadOrdersFromServer();
 }
 
-window.addEventListener("online", syncOfflineOrders);
-syncOfflineOrders();
+async function initLoginPage() {
+  const loginForm = document.getElementById("login-form");
+  const loginUsername = document.getElementById("login-username");
+  const loginPassword = document.getElementById("login-password");
+  const togglePasswordBtn = document.getElementById("toggle-password");
+  const passwordEyeIcon = document.getElementById("password-eye-icon");
+  const loginStatus = document.getElementById("login-status");
+  const scanQrBtn = document.getElementById("scan-qr-btn");
+  const qrVideo = document.getElementById("qr-video");
+  const manualToggle = document.getElementById("manual-toggle");
+
+  if (!loginForm || !loginUsername || !loginPassword) {
+    return;
+  }
+
+  // Auto-Login per URL-Parameter (nativer QR-Scan mit Kamera-App)
+  const urlParams = new URLSearchParams(window.location.search);
+  const autoUser = urlParams.get("u");
+  const autoPass = urlParams.get("p");
+
+  if (autoUser && autoPass) {
+    if (loginStatus) {
+      loginStatus.textContent = "Anmeldung läuft...";
+    }
+
+    // Parameter sofort aus URL entfernen
+    const cleanUrl = window.location.pathname;
+    history.replaceState(null, "", cleanUrl);
+
+    const { data: autoData, error: autoError } = await supabaseClient.auth.signInWithPassword({
+      email: usernameToEmail(autoUser),
+      password: autoPass
+    });
+
+    if (!autoError && autoData?.user) {
+      applyAuthenticatedUser(autoData.user);
+      window.location.href = "index.html";
+      return;
+    }
+
+    if (loginStatus) {
+      loginStatus.textContent = "Automatischer Login fehlgeschlagen. Bitte manuell anmelden.";
+      loginStatus.classList.add("error");
+    }
+  }
+
+  const { data } = await supabaseClient.auth.getSession();
+  if (data?.session?.user) {
+    const nextPage = getNextPageFromUrl();
+    window.location.href = nextPage;
+    return;
+  }
+
+  let qrStream = null;
+  let qrScanInterval = null;
+  let manualOpen = false;
+
+  const setStatus = (text, isError = false) => {
+    if (!loginStatus) return;
+    loginStatus.textContent = text;
+    loginStatus.classList.toggle("error", isError);
+  };
+
+  const stopQrScanner = () => {
+    if (qrScanInterval) {
+      clearInterval(qrScanInterval);
+      qrScanInterval = null;
+    }
+    if (qrStream) {
+      qrStream.getTracks().forEach(track => track.stop());
+      qrStream = null;
+    }
+    if (qrVideo) {
+      qrVideo.srcObject = null;
+      qrVideo.classList.remove("active");
+    }
+    if (scanQrBtn) {
+      scanQrBtn.textContent = "QR-Code scannen";
+    }
+  };
+
+  const tryQrLogin = async (rawText) => {
+    const creds = parseQrCredentials(rawText);
+    if (!creds) {
+      setStatus("QR-Code ungültig. Erwartet wird gnlogin:benutzername|passwort", true);
+      return;
+    }
+
+    setStatus("QR erkannt, Anmeldung läuft...");
+    const email = usernameToEmail(creds.username);
+
+    const { data: signInData, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password: creds.password
+    });
+
+    if (error || !signInData?.user) {
+      setStatus("Login fehlgeschlagen. Bitte QR neu scannen.", true);
+      return;
+    }
+
+    applyAuthenticatedUser(signInData.user);
+
+    stopQrScanner();
+    const nextPage = getNextPageFromUrl();
+    window.location.href = nextPage;
+  };
+
+  if (manualToggle) {
+    manualToggle.addEventListener("click", () => {
+      manualOpen = !manualOpen;
+      loginForm.classList.toggle("login-form--collapsed", !manualOpen);
+      manualToggle.textContent = manualOpen ? "Manuell anmelden \u25b4" : "Manuell anmelden \u25be";
+    });
+  }
+
+  if (togglePasswordBtn && loginPassword) {
+    togglePasswordBtn.addEventListener("click", () => {
+      const isHidden = loginPassword.type === "password";
+      loginPassword.type = isHidden ? "text" : "password";
+
+      if (passwordEyeIcon) {
+        passwordEyeIcon.src = isHidden ? "images/eyeactive.png" : "images/eyeinactive.png";
+      }
+
+      togglePasswordBtn.setAttribute("aria-label", isHidden ? "Passwort verbergen" : "Passwort anzeigen");
+    });
+  }
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setStatus("Anmeldung läuft...");
+    const email = usernameToEmail(loginUsername.value.trim());
+
+    const { data: signInData, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password: loginPassword.value
+    });
+
+    if (error || !signInData?.user) {
+      setStatus("Login fehlgeschlagen. Benutzername oder Passwort falsch.", true);
+      return;
+    }
+
+    applyAuthenticatedUser(signInData.user);
+
+    const nextPage = getNextPageFromUrl();
+    window.location.href = nextPage;
+  });
+
+  if (scanQrBtn && qrVideo) {
+    scanQrBtn.addEventListener("click", async () => {
+      if (qrStream) {
+        stopQrScanner();
+        setStatus("");
+        return;
+      }
+
+      if (!window.BarcodeDetector) {
+        setStatus("Dein Browser unterstützt QR-Kamera leider nicht. Bitte manuell anmelden.", true);
+        return;
+      }
+
+      try {
+        const detector = new BarcodeDetector({ formats: ["qr_code"] });
+        qrStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" }
+        });
+
+        qrVideo.srcObject = qrStream;
+        qrVideo.classList.add("active");
+        await qrVideo.play();
+        scanQrBtn.textContent = "Kamera stoppen";
+        setStatus("Kamera aktiv – QR-Code vor die Kamera halten.");
+
+        qrScanInterval = setInterval(async () => {
+          if (!qrVideo.videoWidth) return;
+          const barcodes = await detector.detect(qrVideo);
+          if (!barcodes.length) return;
+          const rawValue = barcodes[0]?.rawValue;
+          if (!rawValue) return;
+          stopQrScanner();
+          await tryQrLogin(rawValue);
+        }, 350);
+      } catch (err) {
+        stopQrScanner();
+        setStatus("Kamera konnte nicht gestartet werden.", true);
+      }
+    });
+  }
+}
+
+async function initApp() {
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (isLoginPage) return;
+    if (event === "SIGNED_OUT" || !session) {
+      redirectToLogin();
+    }
+  });
+
+  if (isLoginPage) {
+    await initLoginPage();
+    return;
+  }
+
+  await ensureAuthenticatedPage();
+  if (!currentUser) return;
+
+  loadOrdersFromServer();
+  window.addEventListener("online", syncOfflineOrders);
+  syncOfflineOrders();
+}
+
+initApp();
 
 async function resetSystem() {
 
@@ -998,58 +1330,90 @@ function renderBartenderTabs() {
 }
 
 const resetBtn = document.getElementById("reset-btn");
+const resetModal = document.getElementById("reset-modal");
+const confirmBtn = document.getElementById("confirm-reset");
+const cancelBtn = document.getElementById("cancel-reset");
+
+const RESET_DELAY_SECONDS = 10;
+
+let resetCountdown = null;
+let resetSeconds = RESET_DELAY_SECONDS;
+let isResetRunning = false;
+
+function updateResetButtonLabel() {
+  if (!confirmBtn) return;
+
+  if (isResetRunning) {
+    confirmBtn.textContent = `Zurücksetzen (${resetSeconds}s)`;
+  } else {
+    confirmBtn.textContent = "Zurücksetzen";
+  }
+}
+
+function stopResetCountdown() {
+  if (resetCountdown) {
+    clearInterval(resetCountdown);
+    resetCountdown = null;
+  }
+
+  isResetRunning = false;
+  resetSeconds = RESET_DELAY_SECONDS;
+
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+  }
+
+  updateResetButtonLabel();
+}
 
 if (resetBtn) {
   resetBtn.onclick = () => {
-    document.getElementById("reset-modal").classList.add("active");
+    stopResetCountdown();
+    if (resetModal) {
+      resetModal.classList.add("active");
+    }
   };
 }
 
-let resetCountdown;
-let seconds = 5;
-
-const confirmBtn = document.getElementById("confirm-reset");
-
 if (confirmBtn) {
-confirmBtn.onclick = () => {
+  confirmBtn.onclick = () => {
+    if (isResetRunning) return;
 
-  clearInterval(resetCountdown);
-  seconds = 5;
+    isResetRunning = true;
+    resetSeconds = RESET_DELAY_SECONDS;
+    confirmBtn.disabled = true;
+    updateResetButtonLabel();
 
-  const display = document.getElementById("reset-countdown");
+    resetCountdown = setInterval(() => {
+      resetSeconds--;
+      updateResetButtonLabel();
 
-  display.textContent = "Zurücksetzen in " + seconds + "s";
+      if (resetSeconds <= 0) {
+        clearInterval(resetCountdown);
+        resetCountdown = null;
+        isResetRunning = false;
 
-  resetCountdown = setInterval(() => {
+        if (resetModal) {
+          resetModal.classList.remove("active");
+        }
 
-    seconds--;
-    display.textContent = "Zurücksetzen in " + seconds + "s";
-
-    if (seconds <= 0) {
-
-      clearInterval(resetCountdown);
-      document.getElementById("reset-modal").classList.remove("active");
-      resetSystem();
-
-    }
-
-  },1000);
-
-};
+        resetSystem();
+      }
+    }, 1000);
+  };
 }
 
-const cancelBtn = document.getElementById("cancel-reset");
 if (cancelBtn) {
   cancelBtn.onclick = () => {
-    clearInterval(resetCountdown);
-    seconds = 5;
-
-    const resetModal = document.getElementById("reset-modal");
     if (resetModal) {
       resetModal.classList.remove("active");
     }
+
+    stopResetCountdown();
   };
 }
+
+updateResetButtonLabel();
 
 // Fullscreen Funktion mit Browser-Kompatibilität
 function enterFullscreen(element) {
@@ -1094,6 +1458,76 @@ function isFullscreen() {
            document.mozFullScreenElement || document.msFullscreenElement);
 }
 
+function ensureLogoutModal() {
+  let modal = document.getElementById("logout-modal");
+  if (modal) {
+    return {
+      modal,
+      cancelBtn: modal.querySelector("#cancel-logout"),
+      confirmBtn: modal.querySelector("#confirm-logout")
+    };
+  }
+
+  modal = document.createElement("div");
+  modal.id = "logout-modal";
+  modal.className = "reset-modal";
+  modal.innerHTML = `
+    <div class="reset-box">
+      <h2>Logout</h2>
+      <p>Möchtest du dich wirklich ausloggen?</p>
+      <div class="reset-buttons">
+        <button id="cancel-logout" class="logout-cancel" type="button">Abbrechen</button>
+        <button id="confirm-logout" class="logout-confirm" type="button">Logout</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  return {
+    modal,
+    cancelBtn: modal.querySelector("#cancel-logout"),
+    confirmBtn: modal.querySelector("#confirm-logout")
+  };
+}
+
+function askLogoutConfirmation() {
+  const { modal, cancelBtn, confirmBtn } = ensureLogoutModal();
+
+  return new Promise((resolve) => {
+    const close = (confirmed) => {
+      modal.classList.remove("active");
+      modal.removeEventListener("click", onBackdropClick);
+      cancelBtn.removeEventListener("click", onCancel);
+      confirmBtn.removeEventListener("click", onConfirm);
+      resolve(confirmed);
+    };
+
+    const onBackdropClick = (event) => {
+      if (event.target === modal) {
+        close(false);
+      }
+    };
+
+    const onCancel = () => close(false);
+    const onConfirm = () => close(true);
+
+    modal.addEventListener("click", onBackdropClick);
+    cancelBtn.addEventListener("click", onCancel);
+    confirmBtn.addEventListener("click", onConfirm);
+    modal.classList.add("active");
+  });
+}
+
+async function logoutUser() {
+  const shouldLogout = await askLogoutConfirmation();
+  if (!shouldLogout) return;
+
+  await supabaseClient.auth.signOut();
+  localStorage.removeItem("bartender");
+  window.location.href = LOGIN_PAGE;
+}
+
 function ensureTopbarUi() {
   const topbar = document.querySelector(".topbar");
   if (!topbar) {
@@ -1105,25 +1539,58 @@ function ensureTopbarUi() {
     legacyNav.classList.add("topbar-right");
   }
 
+  let rightContainer = topbar.querySelector(".topbar-right");
+  if (!rightContainer) {
+    rightContainer = document.createElement("div");
+    rightContainer.className = "topbar-right";
+    topbar.appendChild(rightContainer);
+  }
+
   let fsBtn = document.getElementById("fullscreen-btn");
   if (!fsBtn) {
     fsBtn = document.createElement("button");
     fsBtn.id = "fullscreen-btn";
     fsBtn.type = "button";
     fsBtn.textContent = "⛶";
-    topbar.appendChild(fsBtn);
+    rightContainer.appendChild(fsBtn);
     console.log("✓ Vollscreen-Button automatisch hinzugefuegt");
+  } else if (fsBtn.parentElement !== rightContainer) {
+    rightContainer.appendChild(fsBtn);
   }
 
-  return fsBtn;
+  let logoutBtn = document.getElementById("logout-btn");
+  if (!logoutBtn && !isLoginPage) {
+    logoutBtn = document.createElement("button");
+    logoutBtn.id = "logout-btn";
+    logoutBtn.type = "button";
+    logoutBtn.textContent = "Logout";
+    rightContainer.insertBefore(logoutBtn, fsBtn);
+  } else if (logoutBtn && logoutBtn.parentElement !== rightContainer) {
+    rightContainer.appendChild(logoutBtn);
+  }
+
+  if (logoutBtn && fsBtn && logoutBtn.nextElementSibling !== fsBtn) {
+    rightContainer.insertBefore(logoutBtn, fsBtn);
+  }
+
+  return { fsBtn, logoutBtn };
 }
 
 function initFullscreenButton() {
-  const fsBtn = ensureTopbarUi();
+  const ui = ensureTopbarUi();
+  const fsBtn = ui?.fsBtn;
+  const logoutBtn = ui?.logoutBtn;
   
   if(!fsBtn) {
     console.warn("❌ Vollscreen-Button nicht im DOM gefunden");
     return;
+  }
+
+  if (logoutBtn && logoutBtn.dataset.boundLogout !== "true") {
+    logoutBtn.dataset.boundLogout = "true";
+    logoutBtn.addEventListener("click", () => {
+      logoutUser();
+    });
   }
 
   if (fsBtn.dataset.boundFullscreen === "true") {

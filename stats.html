@@ -8,16 +8,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 
-<body class="accounting-page">
+<body class="accounting-page has-back-row">
 
 <header class="topbar">
-  <a href="index.html" class="nav-btn">
-    <img src="images/backblue.png">
-    <span>Zurück</span>
-  </a>
+  <div class="topbar-left">
+    <img src="images/logo.png" class="topbar-logo" alt="Logo">
+  </div>
   <h2>Kassenabrechnung</h2>
   <button id="fullscreen-btn">⛶</button>
 </header>
+
+<div class="page-back-row">
+  <a href="index.html" class="page-back-btn">Zurück</a>
+</div>
 
 <div class="page">
   <div id="stats"></div>
@@ -37,13 +40,11 @@
 <h2>System zurücksetzen</h2>
 <p>Alle Bestellungen werden gelöscht.</p>
 
-<div id="reset-countdown"></div>
-
 <div class="reset-buttons">
 <button id="cancel-reset">Abbrechen</button>
 <button id="confirm-reset">Zurücksetzen</button>
 </div>
-<button onclick="downloadPDF()">PDF Export</button>
+<button onclick="downloadPDF()" class="reset-link-btn">PDF Export</button>
 
 </div>
 

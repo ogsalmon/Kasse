@@ -17,6 +17,190 @@ body {
   background: var(--grey);
 }
 
+.login-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-main {
+  width: 100%;
+  max-width: 460px;
+}
+
+.login-logo {
+  width: 130px;
+  height: 130px;
+  object-fit: contain;
+  align-self: center;
+}
+
+.login-card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-card h1 {
+  margin: 0;
+  color: var(--blue);
+}
+
+.login-card p {
+  margin: 0 0 6px;
+  color: #666;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.login-form label,
+.qr-input-label {
+  color: var(--blue);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.login-form input {
+  width: 100%;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+.password-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrap input {
+  padding-right: 46px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+}
+
+.login-form button[type="submit"] {
+  margin-top: 4px;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  background: var(--blue);
+  color: var(--white);
+}
+
+.scan-qr-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  background: var(--turquoise);
+  color: var(--white);
+  letter-spacing: 0.01em;
+}
+
+.scan-qr-btn::before {
+  content: "\2335";
+  font-size: 22px;
+  line-height: 1;
+}
+
+.manual-toggle {
+  width: 100%;
+  background: none;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #888;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.login-form--collapsed {
+  display: none;
+}
+
+#qr-video {
+  display: none;
+  width: 100%;
+  border-radius: 8px;
+  background: #000;
+  max-height: 240px;
+}
+
+#qr-video.active {
+  display: block;
+}
+
+.login-hint {
+  background: #f0f4ff;
+  border-left: 3px solid var(--blue);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin: 0;
+  font-size: 14px;
+  color: #444;
+  line-height: 1.5;
+}
+
+.login-divider {
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.login-status {
+  min-height: 20px;
+  color: var(--turquoise);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.login-status.error {
+  color: var(--red);
+}
+
 .screen {
   height: 100vh;
 }
@@ -56,11 +240,22 @@ main {
   transform: scale(0.92);
 }
 
+#logout-btn {
+  background: var(--blue);
+  color: var(--white);
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+
 .topbar h2 {
   color: var(--blue);
   font-weight: 700;
   margin: 0;
-  flex: 1;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
 }
 
 .topbar .nav {
@@ -74,6 +269,19 @@ main {
   gap: 20px;
   align-items: center;
   margin-left: auto;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-logo {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .topbar {
@@ -91,6 +299,40 @@ main {
   gap: 20px;
 }
 
+.page-back-row {
+  margin-top: 50px;
+  padding: 10px 24px 0;
+}
+
+.page-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  margin-left: 14px;
+  border-radius: 10px;
+  background: #ececec;
+  color: var(--blue);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+@media (min-width: 901px) {
+  .history-page .page-back-btn {
+    margin-left: 2px;
+  }
+}
+
+.history-page .bartender-tabs {
+  margin-top: 0;
+}
+
+.accounting-page.has-back-row .page {
+  margin-top: 0;
+  height: calc(100vh - 88px);
+  height: calc(100dvh - 88px);
+}
+
 .layout{
   display:grid;
   grid-template-columns: 180px 1fr 420px;
@@ -105,7 +347,7 @@ main {
 
 .sidebar{
   background:#E4DFDA;
-  padding-left: 25px;
+  padding: 25px 0 0 25px;
 
   display:flex;
   flex-direction:column;
@@ -262,7 +504,7 @@ white-space:nowrap;
 
 .deposit-add {
   flex: 1;
-  background: #4FA5A0;
+  background: #4357AD;
   border: none;
   border-radius: 5px;
   padding: 14px 12px;
@@ -299,7 +541,7 @@ white-space:nowrap;
   width: 100%;
   margin-top: 12px;
   padding: 14px;
-  background: #4357AD;
+  background: #48A9A6;
   color: white;
   border: none;
   border-radius: 5px;
@@ -425,14 +667,24 @@ button {
     height: 50px;
   }
 
+  .page-back-row {
+    padding: 8px 12px 0;
+  }
+
+  .topbar-logo {
+    width: 56px;
+    height: 56px;
+  }
+
   .layout {
-    grid-template-columns: 80px 1fr 100px;
+    grid-template-columns: 100px minmax(0, 1fr) 280px;
     margin-top: 50px;
     height: calc(100vh - 50px);
     height: calc(100dvh - 50px);
   }
 
   .sidebar {
+    padding: 12px 0 0 12px;
     height: 100%;
   }
 
@@ -441,9 +693,9 @@ button {
   }
 
   .order-panel {
-    width: 100px;
-    min-width: 100px;
-    max-width: 100px;
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
     height: 100%;
   }
 
@@ -486,31 +738,31 @@ button {
   }
 
   .order-table {
-    padding: 6px;
+    padding: 8px;
   }
 
   .order-header {
-    padding: 6px 8px;
-    margin: 0 3px 6px 3px;
-    font-size: 9px;
+    padding: 8px 10px;
+    margin: 0 4px 8px 4px;
+    font-size: 11px;
   }
 
   .order-header,
   .order-row {
-    grid-template-columns: 0.6fr 70px 60px 30px;
-    gap: 4px;
+    grid-template-columns: minmax(0, 1fr) 52px 56px 28px;
+    gap: 6px;
   }
 
   .qty-controls {
-    gap: 8px;
+    gap: 6px;
   }
 
   .qty-btn {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .order-row {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .deposit-area {
@@ -784,7 +1036,7 @@ button {
   gap: 10px;
   padding: 10px 24px;
   flex-wrap: wrap;
-  margin-top:60px;
+  margin-top: 50px;
 }
 
 .bartender-tab {
@@ -948,18 +1200,26 @@ button {
   color: white;
 }
 
-.reset-box button:last-child{
+#confirm-reset:disabled{
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.logout-cancel{
+  background: #eee;
+}
+
+.logout-confirm{
+  background: #C15F63;
+  color: white;
+}
+
+.reset-link-btn{
   font-size: 13px;
   background: none;
   color: #4357AD;
   border: none;
-}
-
-#reset-countdown{
-  font-size: 24px;
-  font-weight: bold;
-  color: #C15F63;
-  margin-bottom: 10px;
+  margin-top: 8px;
 }
 
 .order-toggle {
@@ -1136,7 +1396,10 @@ button {
 
   .deposit-add,
   .deposit-remove {
-    min-height: 52px;
+    min-height: 42px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.1;
   }
 
   #current-order {

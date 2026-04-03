@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login</title>
+<link rel="stylesheet" href="style.css?v=20260319">
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="login-page">
+  <main class="login-main">
+    <section class="login-card">
+      <img src="images/logo.png" class="login-logo" alt="Logo">
+      <h1>Login</h1>
+      <p class="login-hint">Öffne die <strong>Kamera-App</strong> deines Handys und scanne deinen persönlichen QR-Code. Du wirst automatisch eingeloggt.</p>
+
+      <div class="login-divider">Bereits hier? QR direkt scannen:</div>
+      <button id="scan-qr-btn" class="scan-qr-btn" type="button">QR-Code mit Kamera scannen</button>
+      <video id="qr-video" playsinline muted></video>
+
+      <div id="login-status" class="login-status"></div>
+
+      <button id="manual-toggle" class="manual-toggle" type="button">Manuell anmelden ▾</button>
+
+      <form id="login-form" class="login-form login-form--collapsed">
+        <label for="login-username">Benutzername</label>
+        <input id="login-username" type="text" autocomplete="username" required>
+
+        <label for="login-password">Passwort</label>
+        <div class="password-input-wrap">
+          <input id="login-password" type="password" autocomplete="current-password" required>
+          <button id="toggle-password" class="password-toggle" type="button" aria-label="Passwort anzeigen">
+            <img id="password-eye-icon" src="images/eyeinactive.png" alt="">
+          </button>
+        </div>
+
+        <button type="submit">Anmelden</button>
+      </form>
+    </section>
+  </main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js?v=20260319"></script>
+</body>
+</html>
