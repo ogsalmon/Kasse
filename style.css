@@ -550,6 +550,24 @@ white-space:nowrap;
   cursor: pointer;
 }
 
+.personal-order-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 5px;
+  border: 1px solid #C9A873;
+  background: #FBF7F0;
+  color: #4357AD;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.personal-order-btn.active {
+  background: #C9A873;
+  color: #4357AD;
+  border-color: #b18d54;
+}
+
 button {
   cursor: pointer;
   font-family: inherit;
@@ -787,6 +805,12 @@ button {
     font-size: 12px;
     margin-top: 6px;
   }
+
+  .personal-order-btn {
+    padding: 8px;
+    font-size: 11px;
+    margin-top: 6px;
+  }
 }
 
 /* Extra aggressive Skalierung für kleine Handys (unter 768px) */
@@ -923,6 +947,12 @@ button {
     font-size: 11px;
     margin-top: 4px;
   }
+
+  .personal-order-btn {
+    padding: 6px;
+    font-size: 9px;
+    margin-top: 4px;
+  }
 }
 
 .history-card {
@@ -1057,6 +1087,18 @@ button {
 .history-bartender {
   font-weight: 700;
   color: var(--blue);
+}
+
+.history-tag-personal {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1f2a55;
+  background: #C9A873;
 }
 
 .system-remove {
@@ -1283,7 +1325,7 @@ button {
     bottom: 8px;
     z-index: 1005;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr auto auto;
     align-items: center;
     gap: 8px;
     background: rgba(255, 255, 255, 0.96);
@@ -1356,6 +1398,14 @@ button {
     padding: 10px;
     border-radius: 10px;
     font-size: 17px;
+  }
+
+  .mobile-personal-btn {
+    width: 120px;
+    margin-top: 0;
+    padding: 10px 8px;
+    border-radius: 10px;
+    font-size: 12px;
   }
 
   .order-backdrop {

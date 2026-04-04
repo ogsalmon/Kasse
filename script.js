@@ -180,6 +180,26 @@ function getCaseCount(qty, caseSize, category) {
 
 let currentOrder = [];
 let allOrders = [];
+let isPersonalOrder = false;
+
+function isDepositItem(item) {
+  return item?.id === "deposit" || item?.id === "deposit_return";
+}
+
+function isPersonalItem(item) {
+  return item?.personalDrink === true;
+}
+
+function isPersonalOrderRecord(order) {
+  return Array.isArray(order?.items) && order.items.some(isPersonalItem);
+}
+
+function getOrderTotal(items, { excludeDeposit = false } = {}) {
+  return (items || []).reduce((sum, item) => {
+    if (excludeDeposit && isDepositItem(item)) return sum;
+    return sum + (item.qty * item.price);
+  }, 0);
+}
 
 const grid = document.getElementById("drink-grid");
 
@@ -320,7 +340,43 @@ document.addEventListener("DOMContentLoaded", () => {
     closeDrawer();
   }
 
+  const personalBtn = document.getElementById("personal-order-btn");
+  const personalBtnMobile = document.getElementById("personal-order-btn-mobile");
+
+  const onTogglePersonal = () => {
+    isPersonalOrder = !isPersonalOrder;
+
+    if (isPersonalOrder) {
+      currentOrder = currentOrder.filter(item => !isDepositItem(item));
+    } else {
+      syncDeposit();
+    }
+
+    updateCurrentOrder();
+  };
+
+  if (personalBtn) {
+    personalBtn.addEventListener("click", onTogglePersonal);
+  }
+
+  if (personalBtnMobile) {
+    personalBtnMobile.addEventListener("click", onTogglePersonal);
+  }
+
+  updateCurrentOrder();
+
 });
+
+function updatePersonalOrderButtons() {
+  const desktopBtn = document.getElementById("personal-order-btn");
+  const mobileBtn = document.getElementById("personal-order-btn-mobile");
+
+  [desktopBtn, mobileBtn].forEach((btn) => {
+    if (!btn) return;
+    btn.classList.toggle("active", isPersonalOrder);
+    btn.textContent = isPersonalOrder ? "Personalgetränk: AN" : "Personalgetränk";
+  });
+}
 
 function addDrink(drink) {
   const existing = currentOrder.find(o => o.id === drink.id);
@@ -340,6 +396,7 @@ function addDrink(drink) {
 }
 
 function addDeposit() {
+  if (isPersonalOrder) return;
 
   let deposit = currentOrder.find(i => i.id === "deposit")
 
@@ -359,6 +416,8 @@ function addDeposit() {
 
 function updateCurrentOrder() {
   const list = document.getElementById("current-order");
+  updatePersonalOrderButtons();
+
   if (!list) return;
 
   list.innerHTML = "";
@@ -498,10 +557,7 @@ function updateCurrentOrder() {
     list.appendChild(depositRow);
   }
 
-  const total = currentOrder.reduce(
-    (sum, o) => sum + o.qty * o.price,
-    0
-  );
+  const total = getOrderTotal(currentOrder, { excludeDeposit: isPersonalOrder });
 
   const totalText = total.toFixed(2) + "€";
   const totalEl = document.getElementById("current-total");
@@ -524,15 +580,21 @@ function updateCurrentOrder() {
 async function finishOrder() {
   if (currentOrder.length === 0) return;
 
-  const total = currentOrder.reduce(
-    (sum, o) => sum + o.qty * o.price,
-    0
-  );
+  const rawTotal = getOrderTotal(currentOrder);
+
+  const effectiveItems = isPersonalOrder
+    ? currentOrder.filter(item => !isDepositItem(item))
+    : currentOrder;
+
+  const itemsToStore = effectiveItems.map(item => ({
+    ...item,
+    personalDrink: isPersonalOrder
+  }));
 
   const orderData = {
     bartender: bartender,
-    items: currentOrder,
-    total: total,
+    items: itemsToStore,
+    total: isPersonalOrder ? 0 : rawTotal,
     created_at: new Date()
   };
 
@@ -557,6 +619,7 @@ async function finishOrder() {
   }
 
   currentOrder = [];
+  isPersonalOrder = false;
   updateCurrentOrder();
   loadOrdersFromServer();
 }
@@ -631,6 +694,8 @@ async function downloadPDF(){
 
   allOrders.forEach(order => {
     order.items.forEach(item => {
+      if (isPersonalItem(item)) return;
+
       if (!drinkStats[item.name]) {
         drinkStats[item.name] = {
           qty: 0,
@@ -655,6 +720,32 @@ async function downloadPDF(){
     })
     .filter(r => r.qty > 0)
     .sort((a, b) => b.qty - a.qty || a.name.localeCompare(b.name, "de"));
+
+  const personalRowsMap = {};
+
+  allOrders.forEach(order => {
+    order.items.forEach(item => {
+      if (!isPersonalItem(item)) return;
+      if (item.id === "deposit" || item.id === "deposit_return") return;
+
+      const key = `${order.bartender}::${item.name}`;
+      if (!personalRowsMap[key]) {
+        personalRowsMap[key] = {
+          bartender: order.bartender,
+          drink: item.name,
+          qty: 0,
+          price: item.price,
+          total: 0
+        };
+      }
+
+      personalRowsMap[key].qty += item.qty;
+      personalRowsMap[key].total += item.qty * item.price;
+    });
+  });
+
+  const personalRows = Object.values(personalRowsMap)
+    .sort((a, b) => a.bartender.localeCompare(b.bartender, "de") || a.drink.localeCompare(b.drink, "de"));
 
   let totalCash = 0;
   rows.forEach(r => {
@@ -786,6 +877,74 @@ async function downloadPDF(){
   doc.setFontSize(8);
   doc.text("Erstellt mit drinq Kasse", margin, pageHeight - 8);
 
+  y += 12;
+  if (y > pageHeight - 32) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setTextColor(...palette.blue);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("Personalgetränke (nicht berechnet)", margin, y);
+  y += 6;
+
+  if (personalRows.length === 0) {
+    doc.setTextColor(...palette.textDark);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("Keine Personalgetränke im gewählten Zeitraum.", margin, y);
+  } else {
+    const personalCol = {
+      bartender: margin,
+      drink: margin + 45,
+      qty: margin + 128,
+      unit: margin + 152,
+      total: pageWidth - margin
+    };
+
+    const drawPersonalHeader = () => {
+      doc.setFillColor(...palette.ocre);
+      doc.roundedRect(margin, y - 5, pageWidth - margin * 2, 8, 1.5, 1.5, "F");
+      doc.setTextColor(...palette.blue);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Barkeeper", personalCol.bartender + 2, y);
+      doc.text("Getraenk", personalCol.drink + 2, y);
+      doc.text("Stueck", personalCol.qty, y, { align: "right" });
+      doc.text("Preis", personalCol.unit, y, { align: "right" });
+      doc.text("Wert", personalCol.total, y, { align: "right" });
+      y += rowHeight;
+    };
+
+    drawPersonalHeader();
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...palette.textDark);
+
+    personalRows.forEach((row, index) => {
+      if (y > pageHeight - 22) {
+        doc.addPage();
+        y = 20;
+        drawPersonalHeader();
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...palette.textDark);
+      }
+
+      if (index % 2 === 0) {
+        doc.setFillColor(...palette.rowAlt);
+        doc.rect(margin, y - 5, pageWidth - margin * 2, rowHeight, "F");
+      }
+
+      doc.text(truncate(row.bartender, 16), personalCol.bartender + 2, y);
+      doc.text(truncate(row.drink, 28), personalCol.drink + 2, y);
+      doc.text(String(row.qty), personalCol.qty, y, { align: "right" });
+      doc.text(fmt(row.price), personalCol.unit, y, { align: "right" });
+      doc.text(fmt(row.total), personalCol.total, y, { align: "right" });
+      y += rowHeight;
+    });
+  }
+
   doc.save("kassenabrechnung.pdf");
 }
 
@@ -809,6 +968,7 @@ function updateStats() {
   // Verkäufe addieren
   allOrders.forEach(order => {
     order.items.forEach(item => {
+      if (isPersonalItem(item)) return;
 
       if (!drinkStats[item.name]) {
         drinkStats[item.name] = {
@@ -910,26 +1070,37 @@ function updateHistory() {
     content.className = "history-items";
 
     let html = `
-<div class="history-bartender">${order.bartender}</div>
+<div class="history-bartender">${order.bartender}${isPersonalOrderRecord(order) ? '<span class="history-tag-personal">Personalgetränk</span>' : ''}</div>
 <div class="history-time">${order.time}</div>
 `;
 
     let total = 0;
+    let regularTotal = 0;
 
     order.items.forEach(item => {
+      if (isPersonalItem(item) && isDepositItem(item)) {
+        return;
+      }
 
       const lineTotal = item.price * item.qty;
       total += lineTotal;
+      if (!isPersonalItem(item)) {
+        regularTotal += lineTotal;
+      }
 
       html += `
         <div>
-          ${item.name} x ${item.qty}
+          ${item.name} x ${item.qty}${isPersonalItem(item) ? ' (Personal)' : ''}
           <span>${lineTotal.toFixed(2)}€</span>
         </div>
       `;
     });
 
-    html += `<div class="history-total">Summe: ${total.toFixed(2)}€</div>`;
+    if (isPersonalOrderRecord(order)) {
+      html += `<div class="history-total">Summe: 0.00€ (regulär ${total.toFixed(2)}€)</div>`;
+    } else {
+      html += `<div class="history-total">Summe: ${regularTotal.toFixed(2)}€</div>`;
+    }
 
     content.innerHTML = html;
 
@@ -999,6 +1170,8 @@ localStorage.removeItem("bartender")
 }
 
 function addDepositReturn() {
+  if (isPersonalOrder) return;
+
   let depositReturn = currentOrder.find(i => i.id === "deposit_return");
 
   if (depositReturn) {
@@ -1017,6 +1190,11 @@ function addDepositReturn() {
 }
 
 function syncDeposit() {
+  if (isPersonalOrder) {
+    currentOrder = currentOrder.filter(item => !isDepositItem(item));
+    return;
+  }
+
   const depositCount = currentOrder
     .filter(o => o.deposit > 0)
     .reduce((sum, o) => sum + o.qty, 0);
