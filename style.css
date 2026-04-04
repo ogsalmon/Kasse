@@ -1119,7 +1119,7 @@ button {
   display:none;
   align-items:center;
   justify-content:center;
-  z-index:999;
+  z-index:1100;
 }
 
 .modal-card{
@@ -1318,6 +1318,19 @@ button {
     padding: 10px 12px 96px;
   }
 
+  .drink-name {
+    font-size: 13px;
+  }
+
+  .drink-price {
+    font-size: 13px;
+  }
+
+  .drink-volume {
+    font-size: 11px;
+    opacity: 0.75;
+  }
+
   .mobile-order-bar {
     position: fixed;
     left: 8px;
@@ -1325,7 +1338,7 @@ button {
     bottom: 8px;
     z-index: 1005;
     display: grid;
-    grid-template-columns: auto 1fr auto auto;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 8px;
     background: rgba(255, 255, 255, 0.96);
@@ -1356,13 +1369,13 @@ button {
   .order-panel {
     position: fixed;
     top: 50px;
-    bottom: 78px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     right: 0;
     width: min(92vw, 430px);
     min-width: 0;
     max-width: 100%;
-    height: calc(100dvh - 50px);
-    padding: 10px;
+    height: auto;
+    padding: 10px 10px 2px;
     background: #E4DFDA;
     z-index: 1003;
     overflow: hidden;
@@ -1400,17 +1413,9 @@ button {
     font-size: 17px;
   }
 
-  .mobile-personal-btn {
-    width: 120px;
-    margin-top: 0;
-    padding: 10px 8px;
-    border-radius: 10px;
-    font-size: 12px;
-  }
-
   .order-backdrop {
     position: fixed;
-    inset: 50px 0 78px 0;
+    inset: 50px 0 calc(64px + env(safe-area-inset-bottom, 0px)) 0;
     background: rgba(0, 0, 0, 0.28);
     display: none;
     z-index: 1002;
@@ -1421,6 +1426,8 @@ button {
   }
 
   .order-table {
+    display: grid;
+    grid-template-rows: auto 1fr auto auto;
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
     height: 100%;
@@ -1428,10 +1435,29 @@ button {
     padding: 10px;
   }
 
+  .order-table .order-total,
+  .order-table .finish-btn {
+    display: none;
+  }
+
+  .order-table .personal-order-btn {
+    margin-top: 8px;
+    min-height: 42px;
+    font-size: 13px;
+  }
+
   .order-header,
   .order-row {
     grid-template-columns: 1fr 84px 72px 30px;
     gap: 6px;
+  }
+
+  .order-header {
+    font-size: 12px;
+  }
+
+  .order-row {
+    font-size: 13px;
   }
 
   .order-row .qty-controls {
