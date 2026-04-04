@@ -42,7 +42,7 @@ body {
   background: var(--white);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 30px rgba(67, 87, 173, 0.12);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -55,7 +55,7 @@ body {
 
 .login-card p {
   margin: 0 0 6px;
-  color: #666;
+  color: rgba(67, 87, 173, 0.82);
 }
 
 .login-form {
@@ -73,7 +73,7 @@ body {
 
 .login-form input {
   width: 100%;
-  border: 1px solid #d9d9d9;
+  border: 1px solid var(--grey);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 15px;
@@ -143,12 +143,12 @@ body {
 .manual-toggle {
   width: 100%;
   background: none;
-  border: 1px solid #d9d9d9;
+  border: 1px solid var(--grey);
   border-radius: 8px;
   padding: 10px;
   font-size: 14px;
   font-weight: 600;
-  color: #888;
+  color: rgba(67, 87, 173, 0.7);
   text-align: center;
   margin-top: 4px;
 }
@@ -161,7 +161,7 @@ body {
   display: none;
   width: 100%;
   border-radius: 8px;
-  background: #000;
+  background: var(--blue);
   max-height: 240px;
 }
 
@@ -170,19 +170,19 @@ body {
 }
 
 .login-hint {
-  background: #f0f4ff;
+  background: var(--white);
   border-left: 3px solid var(--blue);
   border-radius: 6px;
   padding: 12px 14px;
   margin: 0;
   font-size: 14px;
-  color: #444;
+  color: var(--blue);
   line-height: 1.5;
 }
 
 .login-divider {
   text-align: center;
-  color: #999;
+  color: rgba(67, 87, 173, 0.62);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -294,7 +294,7 @@ main {
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background: white;
+  background: var(--white);
   z-index: 1000;
   gap: 20px;
 }
@@ -311,7 +311,7 @@ main {
   padding: 6px 12px;
   margin-left: 14px;
   border-radius: 10px;
-  background: #ececec;
+  background: var(--grey);
   color: var(--blue);
   font-weight: 700;
   text-decoration: none;
@@ -346,7 +346,7 @@ main {
 }
 
 .sidebar{
-  background:#E4DFDA;
+  background:var(--grey);
   padding: 25px 0 0 25px;
 
   display:flex;
@@ -360,7 +360,7 @@ main {
 
 .drink-card {
   background: var(--blue);
-  color: white;
+  color: var(--white);
   border-radius: 5px;
   padding: 18px;
   display: flex;
@@ -409,7 +409,7 @@ main {
 }
 
 .order-table {
-  background: #ECECEC;
+  background: var(--grey);
   border-radius: 5px;
   padding: 10px;
   width: 100%;
@@ -427,10 +427,10 @@ main {
 }
 
 .order-header {
-  background: #C9A873;
+  background: var(--ocre);
   border-radius: 5px;
   padding: 10px 16px;
-  color: #4357AD;
+  color: var(--blue);
   font-weight: 600;
   margin: 0 6px 10px 6px;
 }
@@ -464,7 +464,7 @@ main {
 
 .order-row{
 gap:10px;
-color: #4357AD;
+color: var(--blue);
 }
 
 .order-row div:first-child{
@@ -485,7 +485,7 @@ white-space:nowrap;
   font-weight: 700;
   border: none;
   background: none;
-  color: #4357AD;
+  color: var(--blue);
   cursor: pointer;
 }
 
@@ -504,36 +504,36 @@ white-space:nowrap;
 
 .deposit-add {
   flex: 1;
-  background: #4357AD;
+  background: var(--blue);
   border: none;
   border-radius: 5px;
   padding: 14px 12px;
   min-height: 48px;
-  color: white;
+  color: var(--white);
   font-weight: 600;
   cursor: pointer;
 }
 
 .deposit-remove {
   flex: 1;
-  background: #C15F63;
+  background: var(--red);
   border: none;
   border-radius: 5px;
   padding: 14px 12px;
   min-height: 48px;
-  color: white;
+  color: var(--white);
   font-weight: 600;
   cursor: pointer;
 }
 
 
 .order-total {
-  border-top: 2px solid #d4d4d4;
+  border-top: 2px solid var(--grey);
   margin-top: 18px;
   padding-top: 12px;
   display: flex;
   justify-content: space-between;
-  color: #4357AD;
+  color: var(--blue);
   font-weight: 700;
 }
 
@@ -541,8 +541,8 @@ white-space:nowrap;
   width: 100%;
   margin-top: 12px;
   padding: 14px;
-  background: #48A9A6;
-  color: white;
+  background: var(--turquoise);
+  color: var(--white);
   border: none;
   border-radius: 5px;
   font-size: 18px;
@@ -555,17 +555,17 @@ white-space:nowrap;
   margin-top: 10px;
   padding: 12px;
   border-radius: 5px;
-  border: 1px solid #C9A873;
-  background: #FBF7F0;
-  color: #4357AD;
+  border: 1px solid var(--ocre);
+  background: var(--white);
+  color: var(--blue);
   font-weight: 700;
   cursor: pointer;
 }
 
 .personal-order-btn.active {
-  background: #C9A873;
-  color: #4357AD;
-  border-color: #b18d54;
+  background: var(--ocre);
+  color: var(--blue);
+  border-color: var(--ocre);
 }
 
 button {
@@ -588,7 +588,7 @@ button {
   border-radius: 5px;
 
   background: transparent;
-  color: #4357AD;
+  color: var(--blue);
 
   font-weight: 600;
   font-size: 15px;
@@ -606,8 +606,8 @@ button {
 
 /* Aktive Kategorie */
 .category.active {
-  background: #4357AD;
-  color: #FBFBFB;
+  background: var(--blue);
+  color: var(--white);
 }
 
 /* Tablet Klick Effekt */
@@ -651,7 +651,7 @@ button {
 
 #reset-btn {
   background: var(--red);
-  color: white;
+  color: var(--white);
   border: none;
   border-radius: 5px;
   padding: 10px 16px;
@@ -956,7 +956,7 @@ button {
 }
 
 .history-card {
-  background: #ECECEC;
+  background: var(--grey);
   border-radius: 8px;
   padding: 18px 20px;
 
@@ -971,7 +971,7 @@ button {
 }
 
 .history-items {
-  color: #4357AD;
+  color: var(--blue);
   font-size: 15px;
   padding-right: 15px;
 }
@@ -1013,7 +1013,7 @@ button {
 }
 
 .stats-card {
-  background: white;
+  background: var(--white);
   border-radius: 10px;
   padding: 28px 32px;
   width: 100%;
@@ -1029,7 +1029,7 @@ button {
 }
 
 .stats-header {
-  background: #C9A873;
+  background: var(--ocre);
   border-radius: 5px;
   font-weight: 600;
   color: var(--blue);
@@ -1053,7 +1053,7 @@ button {
 .stats-total {
   margin-top: 25px;
   padding-top: 12px;
-  border-top: 2px solid #d4d4d4;
+  border-top: 2px solid var(--grey);
   display: flex;
   justify-content: space-between;
   font-weight: 700;
@@ -1072,7 +1072,7 @@ button {
 .bartender-tab {
   padding: 6px 14px;
   border-radius: 20px;
-  background: #ECECEC;
+  background: var(--grey);
   color: var(--blue);
   font-weight: 600;
   cursor: pointer;
@@ -1081,7 +1081,7 @@ button {
 
 .bartender-tab.active {
   background: var(--blue);
-  color: white;
+  color: var(--white);
 }
 
 .history-bartender {
@@ -1097,17 +1097,17 @@ button {
   border-radius: 12px;
   font-size: 12px;
   font-weight: 700;
-  color: #1f2a55;
-  background: #C9A873;
+  color: var(--blue);
+  background: var(--ocre);
 }
 
 .system-remove {
   width: 200px;
-  background: #C15F63;
+  background: var(--red);
   border: none;
   border-radius: 5px;
   padding: 12px;
-  color: white;
+  color: var(--white);
   font-weight: 600;
   cursor: pointer;
 }
@@ -1115,7 +1115,7 @@ button {
 .modal{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,0.35);
+  background:rgba(67, 87, 173, 0.35);
   display:none;
   align-items:center;
   justify-content:center;
@@ -1123,12 +1123,12 @@ button {
 }
 
 .modal-card{
-  background:white;
+  background:var(--white);
   border-radius:16px;
   padding:30px;
   width:340px;
   text-align:center;
-  box-shadow:0 8px 30px rgba(0,0,0,0.15);
+  box-shadow:0 8px 30px rgba(67, 87, 173, 0.15);
 }
 
 .modal-buttons{
@@ -1158,7 +1158,7 @@ button {
   position: fixed;
   inset: 0;
 
-  background: rgba(0,0,0,0.4);
+  background: rgba(67, 87, 173, 0.4);
   backdrop-filter: blur(4px);
 
   display: flex;
@@ -1178,13 +1178,13 @@ button {
 }
 
 .reset-box{
-  background: white;
+  background: var(--white);
   padding: 25px;
   border-radius: 16px;
   width: 90%;
   max-width: 350px;
 
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 30px rgba(67, 87, 173, 0.2);
 
   text-align: center;
   animation: popup 0.2s ease;
@@ -1207,7 +1207,7 @@ button {
 }
 
 .reset-box p{
-  color: #666;
+  color: rgba(67, 87, 173, 0.82);
   font-size: 14px;
   margin-bottom: 20px;
 }
@@ -1233,13 +1233,13 @@ button {
 
 /* Abbrechen */
 #cancel-reset{
-  background: #eee;
+  background: var(--grey);
 }
 
 /* Zurücksetzen (Danger) */
 #confirm-reset{
-  background: #C15F63;
-  color: white;
+  background: var(--red);
+  color: var(--white);
 }
 
 #confirm-reset:disabled{
@@ -1248,18 +1248,18 @@ button {
 }
 
 .logout-cancel{
-  background: #eee;
+  background: var(--grey);
 }
 
 .logout-confirm{
-  background: #C15F63;
-  color: white;
+  background: var(--red);
+  color: var(--white);
 }
 
 .reset-link-btn{
   font-size: 13px;
   background: none;
-  color: #4357AD;
+  color: var(--blue);
   border: none;
   margin-top: 8px;
 }
@@ -1341,11 +1341,11 @@ button {
     grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 8px;
-    background: rgba(255, 255, 255, 0.96);
+    background: rgba(251, 251, 251, 0.96);
     border: 1px solid rgba(67, 87, 173, 0.18);
     border-radius: 14px;
     padding: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 24px rgba(67, 87, 173, 0.2);
     backdrop-filter: blur(4px);
   }
 
@@ -1353,7 +1353,7 @@ button {
     display: grid;
     justify-items: center;
     line-height: 1.05;
-    color: #4357AD;
+    color: var(--blue);
     font-weight: 700;
   }
 
@@ -1376,7 +1376,7 @@ button {
     max-width: 100%;
     height: auto;
     padding: 10px 10px 2px;
-    background: #E4DFDA;
+    background: var(--grey);
     z-index: 1003;
     overflow: hidden;
     display: flex;
@@ -1416,7 +1416,7 @@ button {
   .order-backdrop {
     position: fixed;
     inset: 50px 0 calc(64px + env(safe-area-inset-bottom, 0px)) 0;
-    background: rgba(0, 0, 0, 0.28);
+    background: rgba(67, 87, 173, 0.28);
     display: none;
     z-index: 1002;
   }
@@ -1429,7 +1429,7 @@ button {
     display: grid;
     grid-template-rows: auto 1fr auto auto;
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    box-shadow: 0 8px 24px rgba(67, 87, 173, 0.16);
     height: 100%;
     max-height: none;
     padding: 10px;
