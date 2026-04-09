@@ -107,10 +107,11 @@ const drinks = [
   { id: "alkfrei_bier", name: "Schattenhofer Alkoholfrei", volume: "0,5 l", price: 5.00, deposit: 1.00, category: "bier" },
   { id: "weizen", name: "Gutmann Weizen", volume: "0,5 l", price: 5.00, deposit: 1.00, category: "bier" },
   { id: "radler", name: "Radler", volume: "0,5 l", price: 5.00, deposit: 1.00, category: "bier" },
-  { id: "desperados", name: "Desperados", volume: "0,33 l", price: 7.00, deposit: 1.00, category: "bier" },
+  { id: "corona", name: "Corona", volume: "0,33 l", price: 6.00, deposit: 1.00, category: "bier" },
 
   //Longdrinks / Cocktails
   { id: "vodka_rb", name: "Vodka & Red Bull", volume: "0,4 l", price: 9.00, deposit: 1.00, category: "longdrink" },
+  { id: "jm_rb", name: "Jägermeister & Red Bull", volume: "0,4 l", price: 9.00, deposit: 1.00, category: "longdrink" },
   { id: "vodka_lemon", name: "Vodka Lemon", volume: "0,4 l", price: 9.00, deposit: 1.00, category: "longdrink" },
   { id: "cuba", name: "Cuba Libre", volume: "0,4 l", price: 9.00, deposit: 1.00, category: "longdrink" },
   { id: "gin_tonic", name: "Gin Tonic", volume: "0,4 l", price: 9.00, deposit: 1.00, category: "longdrink" },
@@ -748,11 +749,18 @@ async function downloadPDF(){
     .sort((a, b) => a.bartender.localeCompare(b.bartender, "de") || a.drink.localeCompare(b.drink, "de"));
 
   let totalCash = 0;
+  let pdfDepositPaid = 0;
+  let pdfDepositReturned = 0;
   rows.forEach(r => {
-    if (r.name !== "Pfand") {
+    if (r.name === "Pfand") {
+      pdfDepositPaid = r.total;
+    } else if (r.name === "Pfand Rückgabe") {
+      pdfDepositReturned = Math.abs(r.total);
+    } else {
       totalCash += r.total;
     }
   });
+  const totalCashWithDeposit = totalCash + pdfDepositPaid - pdfDepositReturned;
 
   const orderCount = allOrders.length;
 
@@ -867,10 +875,27 @@ async function downloadPDF(){
   doc.setTextColor(...palette.blue);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text("Gesamt Barumsatz", margin, y + 1.4);
+  doc.text("Gesamt Barumsatz (ohne Pfand)", margin, y + 1.4);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.text(fmt(totalCash), pageWidth - margin, y + 1.4, { align: "right" });
+
+  y += 8;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text(`Pfand bezahlt: +${fmt(pdfDepositPaid)}`, margin, y + 1.4);
+  y += 6;
+  doc.text(`Pfand zurückgegeben: -${fmt(pdfDepositReturned)}`, margin, y + 1.4);
+
+  y += 8;
+  doc.setDrawColor(...palette.blue);
+  doc.line(margin, y - 4, pageWidth - margin, y - 4);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Gesamt Barumsatz (mit Pfand)", margin, y + 1.4);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text(fmt(totalCashWithDeposit), pageWidth - margin, y + 1.4, { align: "right" });
 
   doc.setTextColor(130, 130, 130);
   doc.setFont("helvetica", "italic");
@@ -998,7 +1023,8 @@ function updateStats() {
     </div>
   `;
 
-  let pfandRow = "";
+  let depositPaid = 0;
+  let depositReturned = 0;
 
   Object.entries(drinkStats).forEach(([name,data]) => {
 
@@ -1010,15 +1036,12 @@ function updateStats() {
     const casesLabel = cases === null ? "-" : cases.toFixed(2);
 
     if (name === "Pfand") {
-      pfandRow = `
-        <div class="stat-row">
-          <div>${name}</div>
-          <div>${qty}</div>
-          <div>${casesLabel}</div>
-          <div>${price.toFixed(2)}€</div>
-          <div>${total.toFixed(2)}€</div>
-        </div>
-      `;
+      depositPaid = total;
+      return;
+    }
+
+    if (name === "Pfand Rückgabe") {
+      depositReturned = Math.abs(total);
       return;
     }
 
@@ -1035,12 +1058,28 @@ function updateStats() {
     `;
   });
 
-  html += pfandRow;
-
   html += `
     <div class="stats-total">
-      <span>Gesamt Barumsatz</span>
+      <span>Gesamt Barumsatz (ohne Pfand)</span>
       <span>${totalCash.toFixed(2)}€</span>
+    </div>
+    <div class="stat-row stat-row--deposit">
+      <div>Pfand bezahlt</div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div>+${depositPaid.toFixed(2)}€</div>
+    </div>
+    <div class="stat-row stat-row--deposit">
+      <div>Pfand zurückgegeben</div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div>-${depositReturned.toFixed(2)}€</div>
+    </div>
+    <div class="stats-total stats-total--with-deposit">
+      <span>Gesamt Barumsatz (mit Pfand)</span>
+      <span>${(totalCash + depositPaid - depositReturned).toFixed(2)}€</span>
     </div>
   </div>
   </div>

@@ -409,7 +409,7 @@ main {
 }
 
 .order-table {
-  background: var(--grey);
+  background: var(--white);
   border-radius: 5px;
   padding: 10px;
   width: 100%;
@@ -956,7 +956,7 @@ button {
 }
 
 .history-card {
-  background: var(--grey);
+  background: var(--white);
   border-radius: 8px;
   padding: 18px 20px;
 
@@ -1059,6 +1059,17 @@ button {
   font-weight: 700;
   color: var(--blue);
   font-size: 18px;
+}
+
+.stat-row--deposit {
+  font-weight: 700;
+  border-top: 1px solid var(--grey);
+  margin-top: 4px;
+}
+
+.stats-total--with-deposit {
+  margin-top: 10px;
+  font-size: 20px;
 }
 
 .bartender-tabs {
