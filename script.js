@@ -134,6 +134,7 @@ const drinks = [
   { id: "spezi", name: "Spezi", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
   { id: "apfel", name: "Apfelsaftschorle", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
   { id: "redbull", name: "Red Bull Dose", volume: "0,25 l", price: 5.00, deposit: 1.00, category: "soft" }
+  { id: "bitterlemon", name: "Bitter Lemon", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" }
 ];
 
 const DEPOSIT_ITEM = {
