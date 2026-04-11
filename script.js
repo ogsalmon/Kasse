@@ -120,11 +120,11 @@ const drinks = [
   { id: "aperol", name: "Aperol Spritz", volume: "0,4 l", price: 8.00, deposit: 1.00, category: "longdrink" },
 
   //Shots (kein Pfand)
-  { id: "shot_vodka", name: "Vodka", volume: "0,02 l", price: 3.00, deposit: 0.00, category: "shot" },
-  { id: "shot_jaeger", name: "Jägermeister", volume: "0,02 l", price: 3.00, deposit: 0.00, category: "shot" },
-  { id: "shot_berlinerluft", name: "Berliner Luft", volume: "0,02 l", price: 3.00, deposit: 0.00, category: "shot" },
-  { id: "shot_ficken", name: "Ficken", volume: "0,02 l", price: 3.00, deposit: 0.00, category: "shot" },
-  { id: "shot_vodka_grün", name: "Grüner Vodka", volume: "0,02 l", price: 3.00, deposit: 0.00, category: "shot" },
+  { id: "shot_vodka", name: "Vodka", volume: "0,02 l", price: 3.50, deposit: 0.00, category: "shot" },
+  { id: "shot_jaeger", name: "Jägermeister", volume: "0,02 l", price: 3.50, deposit: 0.00, category: "shot" },
+  { id: "shot_berlinerluft", name: "Berliner Luft", volume: "0,02 l", price: 3.50, deposit: 0.00, category: "shot" },
+  { id: "shot_ficken", name: "Ficken", volume: "0,02 l", price: 3.50, deposit: 0.00, category: "shot" },
+  { id: "shot_vodka_grün", name: "Grüner Vodka", volume: "0,02 l", price: 3.50, deposit: 0.00, category: "shot" },
 
   //Alkoholfrei
   { id: "wasser_s", name: "Wasser spritzig", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
