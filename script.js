@@ -848,9 +848,7 @@ async function submitPaymentMethod(method) {
 async function finalizeOrder(paymentMethod) {
   const rawTotal = getOrderTotal(currentOrder);
 
-  const effectiveItems = currentOrder.filter(item => !isDepositItem(item));
-
-  const itemsToStore = effectiveItems.map(item => ({
+  const itemsToStore = currentOrder.map(item => ({
     ...item,
     personalDrink: paymentMethod === "personal",
     paymentMethod: paymentMethod
@@ -1654,26 +1652,28 @@ function syncDeposit() {
     return;
   }
 
-  const depositCount = currentOrder
+  // Berechne Gesamtpfand basierend auf echten Deposit-Werten
+  const depositTotal = currentOrder
     .filter(o => o.deposit > 0)
-    .reduce((sum, o) => sum + o.qty, 0);
+    .reduce((sum, o) => sum + (o.deposit * o.qty), 0);
 
   const existing = currentOrder.find(o => o.id === "deposit");
 
-  if (depositCount === 0) {
+  if (depositTotal === 0) {
     currentOrder = currentOrder.filter(o => o.id !== "deposit");
     return;
   }
 
   if (existing) {
-    existing.qty = depositCount;
+    existing.price = depositTotal;
+    existing.qty = 1;
   } else {
     currentOrder.push({
       id: "deposit",
       name: "Pfand",
-      price: 1,
+      price: depositTotal,
       deposit: 0,
-      qty: depositCount
+      qty: 1
     });
   }
 }
