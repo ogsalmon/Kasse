@@ -1015,26 +1015,31 @@ async function downloadPDF(){
     const paymentMethod = getOrderPaymentMethod(order);
 
     order.items.forEach(item => {
-      if (paymentMethod === "personal") {
-        personalTotal += item.price * item.qty;
-        return;
-      }
-
-      if (paymentMethod === "cash") {
-        cashTotal += item.price * item.qty;
-      } else if (paymentMethod === "card") {
-        cardTotal += item.price * item.qty;
-      }
-
-      if (!isPersonalItem(item) && item.deposit > 0) {
+      if (!isPersonalItem(item) && item.id === "deposit") {
         pdfDepositPaidQty += item.qty;
+        return;
       }
 
       if (!isPersonalItem(item) && item.id === "deposit_return") {
         pdfDepositReturnedQty += item.qty;
+        return;
       }
 
-      if (isPersonalItem(item)) return;
+      if (isDepositItem(item)) {
+        return;
+      }
+
+      const lineTotal = item.price * item.qty;
+      if (paymentMethod === "personal") {
+        personalTotal += lineTotal;
+        return;
+      }
+
+      if (paymentMethod === "cash") {
+        cashTotal += lineTotal;
+      } else if (paymentMethod === "card") {
+        cardTotal += lineTotal;
+      }
 
       if (!drinkStats[item.name]) {
         drinkStats[item.name] = {
@@ -1412,6 +1417,10 @@ function updateStats() {
   allOrders.forEach(order => {
     const method = getOrderPaymentMethod(order);
     order.items.forEach(item => {
+      if (isDepositItem(item)) {
+        return;
+      }
+
       const lineTotal = item.price * item.qty;
 
       if (method === "cash") {
@@ -1525,6 +1534,150 @@ function updateStats() {
   `;
 
   statsEl.innerHTML = html;
+}
+
+function computeOrderTotals(orders = []) {
+  const totals = {
+    cashTotal: 0,
+    cardTotal: 0,
+    personalTotal: 0,
+    depositPaidQty: 0,
+    depositReturnedQty: 0,
+    depositPaid: 0,
+    depositReturned: 0,
+    totalWithoutPfand: 0,
+    totalWithPfand: 0
+  };
+
+  orders.forEach(order => {
+    const method = getOrderPaymentMethod(order);
+    (order.items || []).forEach(item => {
+      if (!item) return;
+
+      if (item.id === "deposit") {
+        totals.depositPaidQty += item.qty;
+        totals.depositPaid += item.price * item.qty;
+        return;
+      }
+
+      if (item.id === "deposit_return") {
+        totals.depositReturnedQty += item.qty;
+        totals.depositReturned += Math.abs(item.price * item.qty);
+        return;
+      }
+
+      const lineTotal = item.price * item.qty;
+      if (isPersonalItem(item) || method === "personal") {
+        totals.personalTotal += lineTotal;
+        return;
+      }
+
+      if (method === "cash") {
+        totals.cashTotal += lineTotal;
+      } else if (method === "card") {
+        totals.cardTotal += lineTotal;
+      } else {
+        totals.cashTotal += lineTotal;
+      }
+    });
+  });
+
+  totals.totalWithoutPfand = totals.cashTotal + totals.cardTotal;
+  totals.totalWithPfand = totals.totalWithoutPfand + totals.depositPaid - totals.depositReturned;
+  return totals;
+}
+
+function computeLegacyTotals(orders = []) {
+  const totals = {
+    cashTotal: 0,
+    cardTotal: 0,
+    personalTotal: 0,
+    depositPaidQty: 0,
+    depositReturnedQty: 0,
+    depositPaid: 0,
+    depositReturned: 0,
+    totalWithoutPfand: 0,
+    totalWithPfand: 0
+  };
+
+  orders.forEach(order => {
+    const method = getOrderPaymentMethod(order);
+    (order.items || []).forEach(item => {
+      if (!item) return;
+
+      const lineTotal = item.price * item.qty;
+      if (item.id === "deposit") {
+        totals.depositPaidQty += item.qty;
+        totals.depositPaid += lineTotal;
+      }
+
+      if (item.id === "deposit_return") {
+        totals.depositReturnedQty += item.qty;
+        totals.depositReturned += Math.abs(lineTotal);
+      }
+
+      if (isPersonalItem(item) || method === "personal") {
+        totals.personalTotal += lineTotal;
+        return;
+      }
+
+      if (method === "cash") {
+        totals.cashTotal += lineTotal;
+      } else if (method === "card") {
+        totals.cardTotal += lineTotal;
+      } else {
+        totals.cashTotal += lineTotal;
+      }
+    });
+  });
+
+  totals.totalWithoutPfand = totals.cashTotal + totals.cardTotal;
+  totals.totalWithPfand = totals.totalWithoutPfand + totals.depositPaid - totals.depositReturned;
+  return totals;
+}
+
+function validateOrderTotals() {
+  const newTotals = computeOrderTotals(allOrders);
+  const legacyTotals = computeLegacyTotals(allOrders);
+
+  const differences = {
+    cashTotal: newTotals.cashTotal - legacyTotals.cashTotal,
+    cardTotal: newTotals.cardTotal - legacyTotals.cardTotal,
+    totalWithoutPfand: newTotals.totalWithoutPfand - legacyTotals.totalWithoutPfand,
+    totalWithPfand: newTotals.totalWithPfand - legacyTotals.totalWithPfand
+  };
+
+  console.group("Order Totals Validation");
+  console.log("Neue (korrekte) Berechnung");
+  console.table({
+    "Bar ohne Pfand": newTotals.cashTotal.toFixed(2),
+    "Karte ohne Pfand": newTotals.cardTotal.toFixed(2),
+    "Personal": newTotals.personalTotal.toFixed(2),
+    "Pfand bezahlt": newTotals.depositPaid.toFixed(2),
+    "Pfand zurückgegeben": newTotals.depositReturned.toFixed(2),
+    "Barumsatz ohne Pfand": newTotals.totalWithoutPfand.toFixed(2),
+    "Barumsatz mit Pfand": newTotals.totalWithPfand.toFixed(2)
+  });
+  console.log("Legacy Berechnung (Pfand in Bar/Karte enthalten)");
+  console.table({
+    "Bar ohne Pfand": legacyTotals.cashTotal.toFixed(2),
+    "Karte ohne Pfand": legacyTotals.cardTotal.toFixed(2),
+    "Personal": legacyTotals.personalTotal.toFixed(2),
+    "Pfand bezahlt": legacyTotals.depositPaid.toFixed(2),
+    "Pfand zurückgegeben": legacyTotals.depositReturned.toFixed(2),
+    "Barumsatz ohne Pfand": legacyTotals.totalWithoutPfand.toFixed(2),
+    "Barumsatz mit Pfand": legacyTotals.totalWithPfand.toFixed(2)
+  });
+  console.log("Differenzen (neu - legacy)");
+  console.table({
+    "Bar ohne Pfand": differences.cashTotal.toFixed(2),
+    "Karte ohne Pfand": differences.cardTotal.toFixed(2),
+    "Barumsatz ohne Pfand": differences.totalWithoutPfand.toFixed(2),
+    "Barumsatz mit Pfand": differences.totalWithPfand.toFixed(2)
+  });
+  console.groupEnd();
+
+  return { newTotals, legacyTotals, differences };
 }
 
 function updateHistory() {
