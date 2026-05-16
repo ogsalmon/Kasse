@@ -271,6 +271,27 @@ main {
   margin-left: auto;
 }
 
+.bar-switcher-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--blue);
+}
+
+.bar-switcher {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(67, 87, 173, 0.2);
+  background: white;
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.bar-switcher-label {
+  white-space: nowrap;
+}
+
 .topbar-left {
   display: flex;
   align-items: center;
@@ -718,14 +739,15 @@ button {
   }
 
   .category {
-    min-height: 70px;
-    padding: 12px 8px;
-    font-size: 12px;
+    min-height: 50px;
+    padding: 6px 4px;
+    font-size: 9px;
+    gap: 3px;
   }
 
   .category img {
-    width: 28px;
-    height: 28px;
+    width: 20px;
+    height: 20px;
   }
 
   .drink-card {
@@ -820,14 +842,17 @@ button {
   }
 
   .category {
-    min-height: 65px;
-    padding: 10px 6px;
-    font-size: 11px;
+    min-height: 0;
+    flex: 1;
+    min-width: 0;
+    padding: 4px 2px;
+    font-size: 8px;
+    gap: 2px;
   }
 
   .category img {
-    width: 24px;
-    height: 24px;
+    width: 16px;
+    height: 16px;
   }
 
   .drink-card {
@@ -956,13 +981,27 @@ button {
 }
 
 .history-card {
+  position: relative;
   background: var(--white);
   border-radius: 8px;
-  padding: 18px 20px;
+  padding: 22px 20px 18px;
+  border: 1px solid transparent;
 
   display: grid;
   grid-template-columns: 1fr 40px;
   align-items: center;
+}
+
+.history-card--cash {
+  border-color: rgba(72, 169, 166, 0.35);
+}
+
+.history-card--card {
+  border-color: rgba(67, 87, 173, 0.35);
+}
+
+.history-card--personal {
+  border-color: rgba(212, 180, 131, 0.35);
 }
 
 .history-items span {
@@ -973,7 +1012,7 @@ button {
 .history-items {
   color: var(--blue);
   font-size: 15px;
-  padding-right: 15px;
+  padding-right: 85px;
 }
 
 .history-time {
@@ -1072,6 +1111,12 @@ button {
   font-size: 20px;
 }
 
+.stats-payment-divider {
+  height: 1px;
+  background: var(--grey);
+  margin: 16px 0;
+}
+
 .bartender-tabs {
   display: flex;
   gap: 10px;
@@ -1100,16 +1145,39 @@ button {
   color: var(--blue);
 }
 
-.history-tag-personal {
+.history-tag-payment {
+  position: absolute;
+  top: 18px;
+  right: 56px;
   display: inline-flex;
   align-items: center;
-  margin-left: 8px;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 12px;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.history-card--cash .history-tag-payment {
+  color: var(--white);
+  background: var(--turquoise);
+}
+
+.history-card--card .history-tag-payment {
+  color: var(--white);
+  background: var(--blue);
+}
+
+.history-card--personal .history-tag-payment {
   color: var(--blue);
-  background: var(--ocre);
+  background: rgba(212, 180, 131, 0.2);
+}
+
+.history-tag-payment {
+  background: var(--grey);
+  color: var(--blue);
 }
 
 .system-remove {
@@ -1134,12 +1202,32 @@ button {
 }
 
 .modal-card{
+  position: relative;
   background:var(--white);
   border-radius:16px;
   padding:30px;
   width:340px;
   text-align:center;
   box-shadow:0 8px 30px rgba(67, 87, 173, 0.15);
+}
+
+.modal-close-button{
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(67, 87, 173, 0.8);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-close-button:hover{
+  color: rgba(67, 87, 173, 1);
 }
 
 .modal-buttons{

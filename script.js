@@ -56,7 +56,7 @@ async function ensureAuthenticatedPage() {
     return;
   }
 
-  applyAuthenticatedUser(session.user);
+  await applyAuthenticatedUser(session.user);
 }
 
 const USERNAME_DOMAIN = "drinq.local";
@@ -100,42 +100,199 @@ function generateId() {
   return Math.random().toString(36).slice(2);
 }
 
-const drinks = [
-  //Biere
-  { id: "helles", name: "Helles", volume: "0,5 l", price: 5.00, deposit: 1.00, category: "bier" },
-  { id: "pils", name: "Pils", volume: "0,3 l", price: 4.50, deposit: 1.00, category: "bier" },
-  { id: "alkfrei_bier", name: "Schattenhofer Alkoholfrei", volume: "0,5 l", price: 5.00, deposit: 1.00, category: "bier" },
-  { id: "weizen", name: "Gutmann Weizen", volume: "0,5 l", price: 5.00, deposit: 1.00, category: "bier" },
-  { id: "radler", name: "Radler", volume: "0,5 l", price: 5.00, deposit: 1.00, category: "bier" },
-  { id: "corona", name: "Corona", volume: "0,33 l", price: 6.00, deposit: 1.00, category: "bier" },
+const DEFAULT_BAR_ID = typeof BAR_ID !== "undefined" ? BAR_ID : "00000000-0000-0000-0000-000000000000";
+let ACTIVE_BAR_ID = DEFAULT_BAR_ID;
+let activeBarName = typeof BAR_NAME !== "undefined" ? BAR_NAME : "Unbekannte Bar";
+let availableBars = [];
 
-  //Longdrinks / Cocktails
-  { id: "vodka_rb", name: "Vodka & Red Bull", volume: "0,4 l", price: 9.00, deposit: 1.00, category: "longdrink" },
-  { id: "jm_rb", name: "Jägermeister & Red Bull", volume: "0,4 l", price: 9.00, deposit: 1.00, category: "longdrink" },
-  { id: "vodka_lemon", name: "Vodka Lemon", volume: "0,4 l", price: 9.00, deposit: 1.00, category: "longdrink" },
-  { id: "cuba", name: "Cuba Libre", volume: "0,4 l", price: 9.00, deposit: 1.00, category: "longdrink" },
-  { id: "gin_tonic", name: "Gin Tonic", volume: "0,4 l", price: 9.00, deposit: 1.00, category: "longdrink" },
-  { id: "prosecco", name: "Prosecco auf Eis", volume: "0,4 l", price: 6.00, deposit: 1.00, category: "longdrink" },
-  { id: "weinschorle", name: "Weißweinschorle", volume: "0,3 l", price: 6.00, deposit: 1.00, category: "longdrink" },
-  { id: "aperol", name: "Aperol Spritz", volume: "0,4 l", price: 8.00, deposit: 1.00, category: "longdrink" },
+const BAR_SELECTION_STORAGE_PREFIX = "selectedBar";
 
-  //Shots (kein Pfand)
-  { id: "shot_vodka", name: "Vodka", volume: "0,02 l", price: 3.50, deposit: 0.00, category: "shot" },
-  { id: "shot_jaeger", name: "Jägermeister", volume: "0,02 l", price: 3.50, deposit: 0.00, category: "shot" },
-  { id: "shot_berlinerluft", name: "Berliner Luft", volume: "0,02 l", price: 3.50, deposit: 0.00, category: "shot" },
-  { id: "shot_ficken", name: "Ficken", volume: "0,02 l", price: 3.50, deposit: 0.00, category: "shot" },
-  { id: "shot_vodka_grün", name: "Grüner Vodka", volume: "0,02 l", price: 3.50, deposit: 0.00, category: "shot" },
+function storageKey(key) {
+  return `${key}_${ACTIVE_BAR_ID}`;
+}
 
-  //Alkoholfrei
-  { id: "wasser_s", name: "Wasser spritzig", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
-  { id: "wasser_still", name: "Wasser still", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
-  { id: "cola", name: "Coca-Cola", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
-  { id: "cola_zero", name: "Coca-Cola Zero", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
-  { id: "spezi", name: "Spezi", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
-  { id: "apfel", name: "Apfelsaftschorle", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" },
-  { id: "redbull", name: "Red Bull Dose", volume: "0,25 l", price: 5.00, deposit: 1.00, category: "soft" },
-  { id: "bitterlemon", name: "Bitter Lemon", volume: "0,4 l", price: 4.00, deposit: 1.00, category: "soft" }
-];
+function getBarName(barId) {
+  return (typeof BARS !== "undefined" ? BARS[barId] : undefined) || barId || "Unbekannte Bar";
+}
+
+function getSelectedBarId(username) {
+  if (!username) return null;
+  return localStorage.getItem(`${BAR_SELECTION_STORAGE_PREFIX}_${username}`);
+}
+
+function setSelectedBarId(username, barId) {
+  if (!username || !barId) return;
+  localStorage.setItem(`${BAR_SELECTION_STORAGE_PREFIX}_${username}`, barId);
+}
+
+function buildSelectedBar(barId) {
+  return {
+    id: barId,
+    name: getBarName(barId)
+  };
+}
+
+async function resolveBarContextForUser(user) {
+  const username = getBartenderNameFromUser(user);
+  console.log("Auflösung Bar-Kontext für User:", username);
+
+  if (!username) {
+    console.log("Kein Username gefunden");
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("barkeepers")
+    .select("bar_id, display_name")
+    .eq("username", username);
+
+  console.log("Barkeeper-Daten aus DB:", data, "Error:", error);
+
+  if (error) {
+    console.warn("Barkeeper-Kontext konnte nicht geladen werden:", error);
+    return;
+  }
+
+  availableBars = [];
+
+  if (Array.isArray(data) && data.length > 0) {
+    // Für Mehrfachzuweisungen: Erstelle eine barkeeper_bars Tabelle mit bar_id und username
+    // Hier vorerst nur einzelne bar_id verwenden
+    const uniqueBarIds = data.map(row => row.bar_id).filter(Boolean);
+    console.log("Gefundene Bar-IDs:", uniqueBarIds);
+    availableBars = [...new Set(uniqueBarIds)].map(id => buildSelectedBar(id));
+  } else {
+    console.log("Keine Barkeeper-Daten gefunden für Username:", username);
+  }
+
+  const storedBar = getSelectedBarId(username);
+  console.log("Gespeicherte Bar-ID:", storedBar);
+
+  if (storedBar && availableBars.some(bar => bar.id === storedBar)) {
+    ACTIVE_BAR_ID = storedBar;
+  } else if (availableBars.length === 1) {
+    ACTIVE_BAR_ID = availableBars[0].id;
+    setSelectedBarId(username, ACTIVE_BAR_ID);
+  } else if (availableBars.length > 0) {
+    ACTIVE_BAR_ID = availableBars[0].id;
+  }
+
+  console.log("Aktive Bar-ID gesetzt auf:", ACTIVE_BAR_ID);
+  activeBarName = getBarName(ACTIVE_BAR_ID);
+}
+
+async function applyAuthenticatedUser(user) {
+  currentUser = user;
+  await resolveBarContextForUser(user);
+  bartender = getBartenderNameFromUser(user);
+  historyFilter = bartender;
+  localStorage.setItem("bartender", bartender);
+  renderBarSelectionUI();
+}
+
+async function loadDrinks() {
+  console.log("Lade Getränke für Bar-ID:", ACTIVE_BAR_ID);
+
+  if (!ACTIVE_BAR_ID) {
+    console.warn("Keine BAR_ID bekannt, keine Getränke verfügbar.");
+    drinks = [];
+    renderCategories();
+    renderDrinks();
+    updateStats();
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("drinks")
+    .select("*")
+    .eq("bar_id", ACTIVE_BAR_ID)
+    .order("category", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.warn("Getränke konnten nicht geladen werden:", error.message || error);
+    drinks = [];
+    renderCategories();
+    renderDrinks();
+    updateStats();
+    return;
+  }
+
+  console.log("Geladene Getränke:", data);
+
+  if (Array.isArray(data) && data.length > 0) {
+    drinks = data.map(d => ({
+      id: d.id,
+      name: d.name,
+      volume: d.volume,
+      price: Number(d.price),
+      deposit: Number(d.deposit || 0),
+      category: d.category
+    }));
+    console.log("Verarbeitete Drinks:", drinks);
+    renderCategories();
+    renderDrinks();
+    updateStats();
+  } else {
+    console.warn("Keine Getränke in der Datenbank gefunden.");
+    drinks = [];
+    renderCategories();
+    renderDrinks();
+    updateStats();
+  }
+}
+
+async function selectBarById(barId) {
+  if (!barId || barId === ACTIVE_BAR_ID) return;
+
+  ACTIVE_BAR_ID = barId;
+  activeBarName = getBarName(barId);
+
+  if (currentUser) {
+    setSelectedBarId(getBartenderNameFromUser(currentUser), barId);
+  }
+
+  renderBarSelectionUI();
+  await loadDrinks();
+  loadOrdersFromServer();
+}
+
+function renderBarSelectionUI() {
+  if (availableBars.length <= 1) return;
+
+  const topbar = document.querySelector(".topbar");
+  if (!topbar) return;
+
+  let container = document.getElementById("bar-switcher-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "bar-switcher-container";
+    container.className = "bar-switcher-container";
+
+    const target = topbar.querySelector(".topbar-right") || topbar;
+    target.insertBefore(container, target.firstChild);
+  }
+
+  const select = document.createElement("select");
+  select.id = "bar-switcher";
+  select.className = "bar-switcher";
+  select.innerHTML = availableBars
+    .map(bar => `
+      <option value="${bar.id}"${bar.id === ACTIVE_BAR_ID ? " selected" : ""}>
+        ${bar.name}
+      </option>
+    `)
+    .join("");
+
+  select.onchange = async (event) => {
+    await selectBarById(event.target.value);
+  };
+
+  container.innerHTML = "<span class='bar-switcher-label'>Bar:</span>";
+  container.appendChild(select);
+}
+
+let drinks = [];
 
 const DEPOSIT_ITEM = {
   id: "deposit",
@@ -196,6 +353,28 @@ function isPersonalOrderRecord(order) {
   return Array.isArray(order?.items) && order.items.some(isPersonalItem);
 }
 
+function getOrderPaymentMethod(order) {
+  if (!order) return "cash";
+  if (order.paymentMethod) return order.paymentMethod;
+  if (Array.isArray(order.items)) {
+    const itemWithMethod = order.items.find(item => item?.paymentMethod);
+    if (itemWithMethod) return itemWithMethod.paymentMethod;
+    if (isPersonalOrderRecord(order)) return "personal";
+  }
+  return "cash";
+}
+
+function getPaymentMethodLabel(method) {
+  switch (method) {
+    case "card":
+      return "Karte";
+    case "personal":
+      return "Personal";
+    default:
+      return "Bar";
+  }
+}
+
 function getOrderTotal(items, { excludeDeposit = false } = {}) {
   return (items || []).reduce((sum, item) => {
     if (excludeDeposit && isDepositItem(item)) return sum;
@@ -221,6 +400,50 @@ if (document.getElementById("drink-grid")) {
 
 if (document.getElementById("history")) {
   updateHistory();
+}
+
+const CATEGORY_CONFIG = {
+  all: { name: "Alles", icon: null, iconActive: null },
+  bier: { name: "Bier", icon: "images/beerblue.png", iconActive: "images/beerwhite.png" },
+  longdrink: { name: "Longdrinks", icon: "images/longdrinksblue.png", iconActive: "images/longdrinkswhite.png" },
+  longdrinks: { name: "Longdrinks", icon: "images/longdrinksblue.png", iconActive: "images/longdrinkswhite.png" },
+  shot: { name: "Shots", icon: "images/shotsblue.png", iconActive: "images/shotswhite.png" },
+  shots: { name: "Shots", icon: "images/shotsblue.png", iconActive: "images/shotswhite.png" },
+  soft: { name: "Alkoholfrei", icon: "images/alcfreeblue.png", iconActive: "images/alcfreewhite.png" },
+  alkoholfrei: { name: "Alkoholfrei", icon: "images/alcfreeblue.png", iconActive: "images/alcfreewhite.png" },
+  wein: { name: "Wein", icon: "images/longdrinksblue.png", iconActive: "images/longdrinkswhite.png" }, // Verwende Longdrinks Icon für Wein
+  mocktail: { name: "Mocktails", icon: "images/alcfreeblue.png", iconActive: "images/alcfreewhite.png" }, // Verwende Alkoholfrei Icon für Mocktail
+  drinks_mit: { name: "Drinks mit", icon: "images/longdrinksblue.png", iconActive: "images/longdrinkswhite.png" },
+  drinks_ohne: { name: "Drinks ohne", icon: "images/alcfreeblue.png", iconActive: "images/alcfreewhite.png" },
+  softs: { name: "Softs", icon: "images/alcfreeblue.png", iconActive: "images/alcfreewhite.png" }
+};
+
+function renderCategories() {
+  const sidebar = document.querySelector(".sidebar");
+  if (!sidebar) return;
+
+  // Sammle einzigartige Kategorien
+  const categories = new Set(drinks.map(d => d.category));
+  const categoryList = ["all", ...Array.from(categories).sort()];
+
+  sidebar.innerHTML = "";
+
+  categoryList.forEach((cat, index) => {
+    const config = CATEGORY_CONFIG[cat] || { name: cat.charAt(0).toUpperCase() + cat.slice(1), icon: null, iconActive: null };
+    const div = document.createElement("div");
+    div.className = "category" + (index === 0 ? " active" : "");
+    div.onclick = (event) => showCategory(event, cat);
+
+    if (config.icon) {
+      div.setAttribute("data-icon", config.icon);
+      div.setAttribute("data-icon-active", config.iconActive);
+      div.innerHTML = `<img src="${index === 0 ? config.iconActive || config.icon : config.icon}"><span>${config.name}</span>`;
+    } else {
+      div.innerHTML = `<span>${config.name}</span>`;
+    }
+
+    sidebar.appendChild(div);
+  });
 }
 
 function renderDrinks(category = "all") {
@@ -298,6 +521,15 @@ document.addEventListener("DOMContentLoaded", () => {
     priceModal.addEventListener("click", (e) => {
       if (e.target === priceModal) {
         priceModal.style.display = "none";
+      }
+    });
+  }
+
+  const paymentModal = document.getElementById("payment-modal");
+  if (paymentModal) {
+    paymentModal.addEventListener("click", (e) => {
+      if (e.target === paymentModal) {
+        paymentModal.style.display = "none";
       }
     });
   }
@@ -559,11 +791,12 @@ function updateCurrentOrder() {
     list.appendChild(depositRow);
   }
 
-  const total = getOrderTotal(currentOrder, { excludeDeposit: isPersonalOrder });
+  const total = getOrderTotal(currentOrder);
 
   const totalText = total.toFixed(2) + "€";
   const totalEl = document.getElementById("current-total");
   const modalPriceEl = document.getElementById("modal-price");
+  const paymentModalPriceEl = document.getElementById("payment-modal-price");
   const mobileTotalEl = document.getElementById("mobile-total");
 
   if (totalEl) {
@@ -574,6 +807,10 @@ function updateCurrentOrder() {
     modalPriceEl.textContent = totalText;
   }
 
+  if (paymentModalPriceEl) {
+    paymentModalPriceEl.textContent = totalText;
+  }
+
   if (mobileTotalEl) {
     mobileTotalEl.textContent = totalText;
   }
@@ -581,23 +818,50 @@ function updateCurrentOrder() {
 
 async function finishOrder() {
   if (currentOrder.length === 0) return;
+  openPaymentModal();
+}
 
+function openPaymentModal() {
+  const modal = document.getElementById("payment-modal");
+  if (!modal) return;
+
+  const paymentModalPriceEl = document.getElementById("payment-modal-price");
+  const total = getOrderTotal(currentOrder);
+  if (paymentModalPriceEl) {
+    paymentModalPriceEl.textContent = total.toFixed(2) + "€";
+  }
+
+  modal.style.display = "flex";
+}
+
+function closePaymentModal() {
+  const modal = document.getElementById("payment-modal");
+  if (!modal) return;
+  modal.style.display = "none";
+}
+
+async function submitPaymentMethod(method) {
+  closePaymentModal();
+  await finalizeOrder(method);
+}
+
+async function finalizeOrder(paymentMethod) {
   const rawTotal = getOrderTotal(currentOrder);
 
-  const effectiveItems = isPersonalOrder
-    ? currentOrder.filter(item => !isDepositItem(item))
-    : currentOrder;
+  const effectiveItems = currentOrder.filter(item => !isDepositItem(item));
 
   const itemsToStore = effectiveItems.map(item => ({
     ...item,
-    personalDrink: isPersonalOrder
+    personalDrink: paymentMethod === "personal",
+    paymentMethod: paymentMethod
   }));
 
   const orderData = {
     bartender: bartender,
     items: itemsToStore,
-    total: isPersonalOrder ? 0 : rawTotal,
-    created_at: new Date()
+    total: paymentMethod === "personal" ? 0 : rawTotal,
+    created_at: new Date(),
+    bar_id: ACTIVE_BAR_ID
   };
 
   try {
@@ -610,12 +874,17 @@ async function finishOrder() {
   } catch (err) {
     console.log("Offline gespeichert");
 
-    let offlineOrders =
-      JSON.parse(localStorage.getItem("offlineOrders")) || [];
+    const rawOffline = localStorage.getItem(storageKey("offlineOrders")) || localStorage.getItem("offlineOrders");
+    let offlineOrders = [];
+    try {
+      offlineOrders = JSON.parse(rawOffline || "[]");
+    } catch (parseError) {
+      offlineOrders = [];
+    }
 
     offlineOrders.push(orderData);
     localStorage.setItem(
-      "offlineOrders",
+      storageKey("offlineOrders"),
       JSON.stringify(offlineOrders)
     );
   }
@@ -660,6 +929,43 @@ async function downloadPDF(){
     return;
   }
 
+  if (!ACTIVE_BAR_ID) {
+    alert("Keine aktive Bar ausgewählt. PDF kann nicht erstellt werden.");
+    return;
+  }
+
+  const { data: currentBarOrders, error: ordersError } = await supabaseClient
+    .from("orders")
+    .select("*")
+    .eq("bar_id", ACTIVE_BAR_ID)
+    .order("created_at", { ascending: false });
+
+  if (ordersError) {
+    console.error("Fehler beim Laden der Orders:", ordersError);
+    alert("Fehler beim Laden der Daten für PDF.");
+    return;
+  }
+
+  const stationRevenues = {};
+  currentBarOrders.forEach(order => {
+    const station = order.bartender || "Unbekannt";
+    if (!stationRevenues[station]) {
+      stationRevenues[station] = { total: 0, orderCount: 0 };
+    }
+    stationRevenues[station].orderCount += 1;
+
+    order.items.forEach(item => {
+      if (!isPersonalItem(item) && item.id !== "deposit" && item.id !== "deposit_return") {
+        stationRevenues[station].total += item.qty * item.price;
+      }
+    });
+  });
+
+  // Sortiere Barkeeper-Stationen nach Umsatz
+  const sortedStations = Object.entries(stationRevenues)
+    .map(([station, data]) => ({ station, ...data }))
+    .sort((a, b) => b.total - a.total);
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
 
@@ -684,6 +990,9 @@ async function downloadPDF(){
   };
 
   const drinkStats = {};
+  let cashTotal = 0;
+  let cardTotal = 0;
+  let personalTotal = 0;
 
   drinks.forEach(d => {
     drinkStats[d.name] = {
@@ -695,7 +1004,20 @@ async function downloadPDF(){
   });
 
   allOrders.forEach(order => {
+    const paymentMethod = getOrderPaymentMethod(order);
+
     order.items.forEach(item => {
+      if (paymentMethod === "personal") {
+        personalTotal += item.price * item.qty;
+        return;
+      }
+
+      if (paymentMethod === "cash") {
+        cashTotal += item.price * item.qty;
+      } else if (paymentMethod === "card") {
+        cardTotal += item.price * item.qty;
+      }
+
       if (isPersonalItem(item)) return;
 
       if (!drinkStats[item.name]) {
@@ -898,6 +1220,24 @@ async function downloadPDF(){
   doc.setFontSize(12);
   doc.text(fmt(totalCashWithDeposit), pageWidth - margin, y + 1.4, { align: "right" });
 
+  y += 10;
+  if (y > pageHeight - 40) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("Zahlungsarten", margin, y + 1.4);
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Bar: ${fmt(cashTotal)}`, margin, y + 1.4);
+  y += 5;
+  doc.text(`Karte: ${fmt(cardTotal)}`, margin, y + 1.4);
+  y += 5;
+  doc.text(`Personal boniert: ${fmt(personalTotal)}`, margin, y + 1.4);
+
   doc.setTextColor(130, 130, 130);
   doc.setFont("helvetica", "italic");
   doc.setFontSize(8);
@@ -971,6 +1311,37 @@ async function downloadPDF(){
     });
   }
 
+  // Barkeeper-Stationen hinzufügen
+  if (sortedStations.length > 1) {
+    y += 8;
+    if (y > pageHeight - 40) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.setTextColor(...palette.blue);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Stationen-Umsatz (Gesamtumsatz ohne Pfand)", margin, y);
+    y += 8;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...palette.textDark);
+
+    sortedStations.forEach((station, index) => {
+      if (y > pageHeight - 15) {
+        doc.addPage();
+        y = 20;
+      }
+
+      const rank = index + 1;
+      const stationText = `${rank}. ${station.station}: ${fmt(station.total)} (${station.orderCount} Bestellungen)`;
+      doc.text(stationText, margin, y);
+      y += 6;
+    });
+  }
+
   doc.save("kassenabrechnung.pdf");
 }
 
@@ -1010,6 +1381,24 @@ function updateStats() {
   });
 
   let totalCash = 0;
+  let cashTotal = 0;
+  let cardTotal = 0;
+  let personalTotal = 0;
+
+  allOrders.forEach(order => {
+    const method = getOrderPaymentMethod(order);
+    order.items.forEach(item => {
+      const lineTotal = item.price * item.qty;
+
+      if (method === "cash") {
+        cashTotal += lineTotal;
+      } else if (method === "card") {
+        cardTotal += lineTotal;
+      } else if (method === "personal") {
+        personalTotal += lineTotal;
+      }
+    });
+  });
 
   let html = `
   <div class="stats-wrapper">
@@ -1082,6 +1471,31 @@ function updateStats() {
       <span>Gesamt Barumsatz (mit Pfand)</span>
       <span>${(totalCash + depositPaid - depositReturned).toFixed(2)}€</span>
     </div>
+
+    <div class="stats-payment-divider"></div>
+    <div style="margin-top: 16px; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--blue);">Zahlungsarten</div>
+
+    <div class="stat-row">
+      <div>Bar</div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div>${cashTotal.toFixed(2)}€</div>
+    </div>
+    <div class="stat-row">
+      <div>Karte</div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div>${cardTotal.toFixed(2)}€</div>
+    </div>
+    <div class="stat-row">
+      <div>Personal boniert</div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div>${personalTotal.toFixed(2)}€</div>
+    </div>
   </div>
   </div>
   `;
@@ -1103,14 +1517,17 @@ function updateHistory() {
 
   filteredOrders.forEach(order => {
 
+    const paymentMethod = getOrderPaymentMethod(order);
+    const paymentLabel = getPaymentMethodLabel(paymentMethod);
+
     const card = document.createElement("div");
-    card.className = "history-card";
+    card.className = `history-card history-card--${paymentMethod}`;
 
     const content = document.createElement("div");
     content.className = "history-items";
 
     let html = `
-<div class="history-bartender">${order.bartender}${isPersonalOrderRecord(order) ? '<span class="history-tag-personal">Personalgetränk</span>' : ''}</div>
+<div class="history-bartender">${order.bartender} <span class="history-tag-payment">${paymentLabel}</span></div>
 <div class="history-time">${order.time}</div>
 `;
 
@@ -1136,7 +1553,7 @@ function updateHistory() {
       `;
     });
 
-    if (isPersonalOrderRecord(order)) {
+    if (paymentMethod === "personal") {
       html += `<div class="history-total">Summe: 0.00€ (regulär ${total.toFixed(2)}€)</div>`;
     } else {
       html += `<div class="history-total">Summe: ${regularTotal.toFixed(2)}€</div>`;
@@ -1156,7 +1573,8 @@ function updateHistory() {
       const { error } = await supabaseClient
         .from("orders")
         .delete()
-        .eq("id", order.id);
+        .eq("id", order.id)
+        .eq("bar_id", ACTIVE_BAR_ID);
 
       if (error) {
         alert("Fehler beim Stornieren");
@@ -1201,8 +1619,9 @@ function resetShift() {
 
   allOrders = [];
   currentOrder = [];
- localStorage.removeItem("offlineOrders")
-localStorage.removeItem("bartender")
+  localStorage.removeItem(storageKey("offlineOrders"));
+  localStorage.removeItem("offlineOrders");
+  localStorage.removeItem("bartender");
 
   updateCurrentOrder();
   updateStats();
@@ -1259,12 +1678,21 @@ function syncDeposit() {
   }
 }
 
-if (!isLoginPage) {
+function subscribeToOrders() {
+  if (typeof ACTIVE_BAR_ID === "undefined" || !ACTIVE_BAR_ID) {
+    return;
+  }
+
   supabaseClient
     .channel("orders-live")
     .on(
       "postgres_changes",
-      { event: "*", schema: "public", table: "orders" },
+      {
+        event: "*",
+        schema: "public",
+        table: "orders",
+        filter: `bar_id=eq.${ACTIVE_BAR_ID}`
+      },
       () => {
         loadOrdersFromServer();
       }
@@ -1276,6 +1704,7 @@ async function loadOrdersFromServer() {
   const { data, error } = await supabaseClient
     .from("orders")
     .select("*")
+    .eq("bar_id", ACTIVE_BAR_ID)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -1296,15 +1725,25 @@ async function loadOrdersFromServer() {
 }
 
 async function syncOfflineOrders() {
-  let offlineOrders =
-    JSON.parse(localStorage.getItem("offlineOrders")) || [];
+  const rawOffline = localStorage.getItem(storageKey("offlineOrders")) || localStorage.getItem("offlineOrders");
+  let offlineOrders = [];
+
+  try {
+    offlineOrders = JSON.parse(rawOffline || "[]");
+  } catch (err) {
+    offlineOrders = [];
+  }
 
   if (offlineOrders.length === 0) return;
 
   for (const order of offlineOrders) {
+    if (!order.bar_id) {
+      order.bar_id = ACTIVE_BAR_ID;
+    }
     await supabaseClient.from("orders").insert([order]);
   }
 
+  localStorage.removeItem(storageKey("offlineOrders"));
   localStorage.removeItem("offlineOrders");
   loadOrdersFromServer();
 }
@@ -1358,7 +1797,7 @@ async function initLoginPage() {
     }
 
     if (!autoError && autoData?.user) {
-      applyAuthenticatedUser(autoData.user);
+      await applyAuthenticatedUser(autoData.user);
       window.location.href = "index.html";
       return;
     }
@@ -1531,6 +1970,8 @@ async function initApp() {
   await ensureAuthenticatedPage();
   if (!currentUser) return;
 
+  await loadDrinks();
+  subscribeToOrders();
   loadOrdersFromServer();
   window.addEventListener("online", syncOfflineOrders);
   syncOfflineOrders();
@@ -1543,7 +1984,7 @@ async function resetSystem() {
   const { error } = await supabaseClient
     .from("orders")
     .delete()
-    .not("id","is",null);
+    .eq("bar_id", ACTIVE_BAR_ID);
 
   if (error) {
     console.error("Reset Fehler:", error);
@@ -1551,6 +1992,7 @@ async function resetSystem() {
     return;
   }
 
+  localStorage.removeItem(storageKey("offlineOrders"));
   localStorage.removeItem("offlineOrders");
   localStorage.removeItem("bartender");
 
