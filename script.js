@@ -345,6 +345,22 @@ function isDepositItem(item) {
   return item?.id === "deposit" || item?.id === "deposit_return";
 }
 
+function getDepositQuantities(items) {
+  const depositPaidQty = (items || [])
+    .filter(item => item.deposit > 0)
+    .reduce((sum, item) => sum + item.qty, 0);
+
+  const depositReturnedQty = (items || [])
+    .filter(item => item.id === "deposit_return")
+    .reduce((sum, item) => sum + item.qty, 0);
+
+  return {
+    depositPaidQty,
+    depositReturnedQty,
+    netDepositQty: depositPaidQty - depositReturnedQty
+  };
+}
+
 function isPersonalItem(item) {
   return item?.personalDrink === true;
 }
@@ -656,16 +672,8 @@ function updateCurrentOrder() {
 
   list.innerHTML = "";
 
-  // Calculate net deposit amount (deposit - returns)
-  const depositQty = currentOrder
-    .filter(o => o.id === "deposit")
-    .reduce((sum, o) => sum + o.qty, 0);
-
-  const depositReturnQty = currentOrder
-    .filter(o => o.id === "deposit_return")
-    .reduce((sum, o) => sum + o.qty, 0);
-
-  const netDeposit = depositQty - depositReturnQty;
+  const { netDepositQty } = getDepositQuantities(currentOrder);
+  const depositTotalPrice = currentOrder.find(o => o.id === "deposit")?.price || 0;
 
   // Filter out deposit/deposit_return items and sort remaining items
   const displayOrder = currentOrder
@@ -735,7 +743,7 @@ function updateCurrentOrder() {
   });
 
   // Add net deposit row if there's any deposit
-  if (netDeposit !== 0) {
+  if (netDepositQty !== 0) {
     const depositRow = document.createElement("div");
     depositRow.className = "order-row";
     depositRow.style.fontWeight = "700";
@@ -751,7 +759,7 @@ function updateCurrentOrder() {
     depositMinus.textContent = "−";
 
     const depositQtySpan = document.createElement("span");
-    depositQtySpan.textContent = netDeposit + "x";
+    depositQtySpan.textContent = netDepositQty + "x";
     depositQtySpan.style.fontWeight = "600";
 
     const depositPlus = document.createElement("button");
@@ -772,7 +780,7 @@ function updateCurrentOrder() {
 
     const depositPrice = document.createElement("div");
     depositPrice.className = "price";
-    depositPrice.textContent = (netDeposit * 1.0).toFixed(2) + "€";
+    depositPrice.textContent = depositTotalPrice.toFixed(2) + "€";
 
     const depositDel = document.createElement("button");
     depositDel.className = "delete-btn";
@@ -991,6 +999,8 @@ async function downloadPDF(){
   let cashTotal = 0;
   let cardTotal = 0;
   let personalTotal = 0;
+  let pdfDepositPaidQty = 0;
+  let pdfDepositReturnedQty = 0;
 
   drinks.forEach(d => {
     drinkStats[d.name] = {
@@ -1014,6 +1024,14 @@ async function downloadPDF(){
         cashTotal += item.price * item.qty;
       } else if (paymentMethod === "card") {
         cardTotal += item.price * item.qty;
+      }
+
+      if (!isPersonalItem(item) && item.deposit > 0) {
+        pdfDepositPaidQty += item.qty;
+      }
+
+      if (!isPersonalItem(item) && item.id === "deposit_return") {
+        pdfDepositReturnedQty += item.qty;
       }
 
       if (isPersonalItem(item)) return;
@@ -1042,6 +1060,14 @@ async function downloadPDF(){
     })
     .filter(r => r.qty > 0)
     .sort((a, b) => b.qty - a.qty || a.name.localeCompare(b.name, "de"));
+
+  rows.forEach(r => {
+    if (r.name === "Pfand") {
+      r.qty = pdfDepositPaidQty;
+    } else if (r.name === "Pfand Rückgabe") {
+      r.qty = pdfDepositReturnedQty;
+    }
+  });
 
   const personalRowsMap = {};
 
@@ -1531,9 +1557,20 @@ function updateHistory() {
 
     let total = 0;
     let regularTotal = 0;
+    const { depositPaidQty } = getDepositQuantities(order.items);
+    const depositItem = order.items.find(item => item.id === "deposit");
 
     order.items.forEach(item => {
       if (isPersonalItem(item) && isDepositItem(item)) {
+        return;
+      }
+
+      if (item.id === "deposit") {
+        const depositTotal = item.price * item.qty;
+        total += depositTotal;
+        if (!isPersonalItem(item)) {
+          regularTotal += depositTotal;
+        }
         return;
       }
 
@@ -1550,6 +1587,15 @@ function updateHistory() {
         </div>
       `;
     });
+
+    if (depositItem && depositPaidQty > 0) {
+      html += `
+        <div>
+          Pfand x ${depositPaidQty}
+          <span>${depositItem.price.toFixed(2)}€</span>
+        </div>
+      `;
+    }
 
     if (paymentMethod === "personal") {
       html += `<div class="history-total">Summe: 0.00€ (regulär ${total.toFixed(2)}€)</div>`;
