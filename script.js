@@ -156,8 +156,7 @@ async function resolveBarContextForUser(user) {
   availableBars = [];
 
   if (Array.isArray(data) && data.length > 0) {
-    // Für Mehrfachzuweisungen: Erstelle eine barkeeper_bars Tabelle mit bar_id und username
-    // Hier vorerst nur einzelne bar_id verwenden
+    // Each matching row grants this user access to one assigned bar.
     const uniqueBarIds = data.map(row => row.bar_id).filter(Boolean);
     console.log("Gefundene Bar-IDs:", uniqueBarIds);
     availableBars = [...new Set(uniqueBarIds)].map(id => buildSelectedBar(id));
@@ -863,6 +862,7 @@ async function finalizeOrder(paymentMethod) {
   }));
 
   const orderData = {
+    id: crypto.randomUUID(),
     bartender: bartender,
     items: itemsToStore,
     total: paymentMethod === "personal" ? 0 : rawTotal,
@@ -878,7 +878,7 @@ async function finalizeOrder(paymentMethod) {
     if (error) throw error;
 
   } catch (err) {
-    console.log("Offline gespeichert");
+    console.warn("Bestellung wird lokal gespeichert, Supabase ist nicht erreichbar:", err);
 
     const rawOffline = localStorage.getItem(storageKey("offlineOrders")) || localStorage.getItem("offlineOrders");
     let offlineOrders = [];
@@ -889,10 +889,17 @@ async function finalizeOrder(paymentMethod) {
     }
 
     offlineOrders.push(orderData);
-    localStorage.setItem(
-      storageKey("offlineOrders"),
-      JSON.stringify(offlineOrders)
-    );
+    try {
+      localStorage.setItem(
+        storageKey("offlineOrders"),
+        JSON.stringify(offlineOrders)
+      );
+    } catch (storageError) {
+      console.error("Bestellung konnte nicht lokal gespeichert werden:", storageError);
+      alert("Die Bestellung konnte weder an Supabase gesendet noch lokal gespeichert werden. Bitte diese Bestellung nicht schließen und sofort die Leitung informieren.");
+      return;
+    }
+    alert("Supabase ist nicht erreichbar. Die Bestellung wurde auf diesem Gerät zwischengespeichert und wird später synchronisiert. Bitte die Abrechnung erst nach erfolgreicher Synchronisierung verwenden.");
   }
 
   currentOrder = [];
@@ -1005,6 +1012,7 @@ async function downloadPDF(){
   drinks.forEach(d => {
     drinkStats[d.name] = {
       qty: 0,
+      total: 0,
       price: d.price,
       volume: d.volume,
       category: d.category
@@ -1017,11 +1025,15 @@ async function downloadPDF(){
     order.items.forEach(item => {
       if (!isPersonalItem(item) && item.id === "deposit") {
         pdfDepositPaidQty += item.qty;
+        if (paymentMethod === "cash") cashTotal += item.price * item.qty;
+        if (paymentMethod === "card") cardTotal += item.price * item.qty;
         return;
       }
 
       if (!isPersonalItem(item) && item.id === "deposit_return") {
         pdfDepositReturnedQty += item.qty;
+        if (paymentMethod === "cash") cashTotal += item.price * item.qty;
+        if (paymentMethod === "card") cardTotal += item.price * item.qty;
         return;
       }
 
@@ -1044,6 +1056,7 @@ async function downloadPDF(){
       if (!drinkStats[item.name]) {
         drinkStats[item.name] = {
           qty: 0,
+          total: 0,
           price: item.price,
           volume: null,
           category: null
@@ -1051,14 +1064,15 @@ async function downloadPDF(){
       }
 
       drinkStats[item.name].qty += item.qty;
+      drinkStats[item.name].total += item.price * item.qty;
     });
   });
 
   const rows = Object.entries(drinkStats)
     .map(([name, data]) => {
       const qty = data.qty;
-      const price = data.price;
-      const total = qty * price;
+      const total = data.total;
+      const price = qty > 0 ? total / qty : data.price;
       const caseSize = getCaseSizeByVolume(data.volume);
       const cases = getCaseCount(qty, caseSize, data.category);
       return { name, qty, price, total, cases };
@@ -1385,6 +1399,7 @@ function updateStats() {
   drinks.forEach(d => {
     drinkStats[d.name] = {
       qty: 0,
+      total: 0,
       price: d.price,
       volume: d.volume,
       category: d.category
@@ -1399,6 +1414,7 @@ function updateStats() {
       if (!drinkStats[item.name]) {
         drinkStats[item.name] = {
           qty: 0,
+          total: 0,
           price: item.price,
           volume: null,
           category: null
@@ -1406,6 +1422,7 @@ function updateStats() {
       }
 
       drinkStats[item.name].qty += item.qty;
+      drinkStats[item.name].total += item.price * item.qty;
     });
   });
 
@@ -1417,10 +1434,6 @@ function updateStats() {
   allOrders.forEach(order => {
     const method = getOrderPaymentMethod(order);
     order.items.forEach(item => {
-      if (isDepositItem(item)) {
-        return;
-      }
-
       const lineTotal = item.price * item.qty;
 
       if (method === "cash") {
@@ -1452,8 +1465,8 @@ function updateStats() {
   Object.entries(drinkStats).forEach(([name,data]) => {
 
     const qty = data.qty;
-    const price = data.price;
-    const total = qty * price;
+    const total = data.total;
+    const price = qty > 0 ? total / qty : data.price;
     const caseSize = getCaseSizeByVolume(data.volume);
     const cases = getCaseCount(qty, caseSize, data.category);
     const casesLabel = cases === null ? "-" : cases.toFixed(2);
@@ -1483,7 +1496,7 @@ function updateStats() {
 
   html += `
     <div class="stats-total">
-      <span>Gesamt Barumsatz (ohne Pfand)</span>
+      <span>Getränkeumsatz (ohne Pfand)</span>
       <span>${totalCash.toFixed(2)}€</span>
     </div>
     <div class="stat-row stat-row--deposit">
@@ -1767,14 +1780,16 @@ function updateHistory() {
 
       if (!confirm("Bestellung wirklich stornieren?")) return;
 
-      const { error } = await supabaseClient
+      const { data: deletedOrders, error } = await supabaseClient
         .from("orders")
         .delete()
         .eq("id", order.id)
-        .eq("bar_id", ACTIVE_BAR_ID);
+        .eq("bar_id", ACTIVE_BAR_ID)
+        .eq("bartender", bartender)
+        .select("id");
 
-      if (error) {
-        alert("Fehler beim Stornieren");
+      if (error || !deletedOrders?.length) {
+        alert(error ? "Fehler beim Stornieren" : "Keine eigene Bestellung gelöscht. Bitte Bar-Zuordnung und Zugriffsrechte prüfen.");
         return;
       }
 
@@ -1923,8 +1938,14 @@ async function loadOrdersFromServer() {
   renderBartenderTabs();
 }
 
+let isSyncingOfflineOrders = false;
+
 async function syncOfflineOrders() {
-  const rawOffline = localStorage.getItem(storageKey("offlineOrders")) || localStorage.getItem("offlineOrders");
+  if (isSyncingOfflineOrders) return;
+
+  const offlineStorageKey = storageKey("offlineOrders");
+  const sourceKey = localStorage.getItem(offlineStorageKey) ? offlineStorageKey : "offlineOrders";
+  const rawOffline = localStorage.getItem(sourceKey);
   let offlineOrders = [];
 
   try {
@@ -1935,16 +1956,48 @@ async function syncOfflineOrders() {
 
   if (offlineOrders.length === 0) return;
 
-  for (const order of offlineOrders) {
-    if (!order.bar_id) {
-      order.bar_id = ACTIVE_BAR_ID;
+  isSyncingOfflineOrders = true;
+  const pendingOrders = [];
+  const ordersToSync = offlineOrders.map(order => ({
+    ...order,
+    id: order.id || crypto.randomUUID(),
+    bar_id: order.bar_id || ACTIVE_BAR_ID
+  }));
+
+  localStorage.setItem(sourceKey, JSON.stringify(ordersToSync));
+
+  for (const order of ordersToSync) {
+    if (order.bar_id !== ACTIVE_BAR_ID) {
+      pendingOrders.push(order);
+      continue;
     }
-    await supabaseClient.from("orders").insert([order]);
+
+    try {
+      const { error } = await supabaseClient
+        .from("orders")
+        .upsert(order, { onConflict: "id", ignoreDuplicates: true });
+
+      if (error) {
+        console.error("Offline-Bestellung konnte nicht synchronisiert werden:", error);
+        pendingOrders.push(order);
+      }
+    } catch (error) {
+      console.error("Offline-Bestellung konnte nicht synchronisiert werden:", error);
+      pendingOrders.push(order);
+    }
   }
 
-  localStorage.removeItem(storageKey("offlineOrders"));
-  localStorage.removeItem("offlineOrders");
-  loadOrdersFromServer();
+  if (pendingOrders.length > 0) {
+    localStorage.setItem(sourceKey, JSON.stringify(pendingOrders));
+  } else {
+    localStorage.removeItem(sourceKey);
+  }
+  if (sourceKey === offlineStorageKey) {
+    localStorage.removeItem("offlineOrders");
+  }
+
+  isSyncingOfflineOrders = false;
+  await loadOrdersFromServer();
 }
 
 async function initLoginPage() {
@@ -1961,6 +2014,38 @@ async function initLoginPage() {
   if (!loginForm || !loginUsername || !loginPassword) {
     return;
   }
+
+  const continueAfterLogin = async (user) => {
+    await applyAuthenticatedUser(user);
+
+    if (availableBars.length > 1) {
+      const modal = document.getElementById("bar-select-modal");
+      const options = document.getElementById("bar-select-options");
+      const username = getBartenderNameFromUser(user);
+
+      if (modal && options) {
+        options.replaceChildren();
+        availableBars.forEach(bar => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "bar-select-option";
+          button.textContent = bar.name;
+          button.addEventListener("click", () => {
+            ACTIVE_BAR_ID = bar.id;
+            activeBarName = bar.name;
+            setSelectedBarId(username, bar.id);
+            modal.classList.remove("active");
+            window.location.href = getNextPageFromUrl();
+          });
+          options.appendChild(button);
+        });
+        modal.classList.add("active");
+        return;
+      }
+    }
+
+    window.location.href = getNextPageFromUrl();
+  };
 
   // Auto-Login per URL-Parameter (nativer QR-Scan mit Kamera-App)
   const urlParams = new URLSearchParams(window.location.search);
@@ -1996,8 +2081,7 @@ async function initLoginPage() {
     }
 
     if (!autoError && autoData?.user) {
-      await applyAuthenticatedUser(autoData.user);
-      window.location.href = "index.html";
+      await continueAfterLogin(autoData.user);
       return;
     }
 
@@ -2009,8 +2093,7 @@ async function initLoginPage() {
 
   const { data } = await supabaseClient.auth.getSession();
   if (data?.session?.user) {
-    const nextPage = getNextPageFromUrl();
-    window.location.href = nextPage;
+    await continueAfterLogin(data.session.user);
     return;
   }
 
@@ -2062,11 +2145,9 @@ async function initLoginPage() {
       return;
     }
 
-    applyAuthenticatedUser(signInData.user);
+    await continueAfterLogin(signInData.user);
 
     stopQrScanner();
-    const nextPage = getNextPageFromUrl();
-    window.location.href = nextPage;
   };
 
   if (manualToggle) {
@@ -2105,10 +2186,7 @@ async function initLoginPage() {
       return;
     }
 
-    applyAuthenticatedUser(signInData.user);
-
-    const nextPage = getNextPageFromUrl();
-    window.location.href = nextPage;
+    await continueAfterLogin(signInData.user);
   });
 
   if (scanQrBtn && qrVideo) {
@@ -2180,10 +2258,12 @@ initApp();
 
 async function resetSystem() {
 
-  const { error } = await supabaseClient
+  const { data: deletedOrders, error } = await supabaseClient
     .from("orders")
     .delete()
-    .eq("bar_id", ACTIVE_BAR_ID);
+    .eq("bar_id", ACTIVE_BAR_ID)
+    .eq("bartender", bartender)
+    .select("id");
 
   if (error) {
     console.error("Reset Fehler:", error);
@@ -2191,9 +2271,28 @@ async function resetSystem() {
     return;
   }
 
-  localStorage.removeItem(storageKey("offlineOrders"));
-  localStorage.removeItem("offlineOrders");
-  localStorage.removeItem("bartender");
+  if (!deletedOrders?.length) {
+    alert("Es wurden keine eigenen gespeicherten Bons gelöscht. Offline-Bestellungen bleiben erhalten.");
+    return;
+  }
+
+  for (const key of [storageKey("offlineOrders"), "offlineOrders"]) {
+    let queuedOrders = [];
+    try {
+      queuedOrders = JSON.parse(localStorage.getItem(key) || "[]");
+    } catch (parseError) {
+      continue;
+    }
+
+    const remainingOrders = queuedOrders.filter(order =>
+      order.bartender !== bartender || (order.bar_id && order.bar_id !== ACTIVE_BAR_ID)
+    );
+    if (remainingOrders.length > 0) {
+      localStorage.setItem(key, JSON.stringify(remainingOrders));
+    } else {
+      localStorage.removeItem(key);
+    }
+  }
 
   location.reload();
 }
