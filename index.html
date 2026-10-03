@@ -146,10 +146,10 @@
     <div id="payment-modal-price" style="font-size: 44px; font-weight: 700; color: var(--blue); margin-bottom: 18px;">0.00€</div>
     <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 14px;">
       <button type="button" class="finish-btn" style="flex: 1; min-width: 90px;" onclick="submitPaymentMethod('cash')">Bar</button>
-      <button type="button" class="finish-btn" style="flex: 1; min-width: 90px;" onclick="submitPaymentMethod('card')">Karte</button>
+      <button id="payment-card-button" type="button" class="finish-btn" style="flex: 1; min-width: 90px;" onclick="submitPaymentMethod('card')">Karte</button>
       <button type="button" class="finish-btn" style="flex: 1; min-width: 90px;" onclick="submitPaymentMethod('personal')">Personal</button>
     </div>
-    <div style="font-size: 12px; color: rgba(67, 87, 173, 0.62); text-align: center;">Betrag ablesen und in Kartenlesegerät eingeben, danach Zahlungsart „Karte“ wählen.</div>
+    <div id="payment-card-hint" style="font-size: 12px; color: rgba(67, 87, 173, 0.62); text-align: center;">Betrag ablesen und in Kartenlesegerät eingeben, danach Zahlungsart „Karte“ wählen.</div>
   </div>
 </div>
 
@@ -161,7 +161,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js?v=20260505"></script>
-<script src="script.js?v=20261003"></script>
+<script src="script.js?v=20261003-2"></script>
 
 </body>
 </html>

@@ -363,6 +363,10 @@ function getPaymentMethodLabel(method) {
   }
 }
 
+function isCardPaymentAvailable() {
+  return activeBarName.toLowerCase() !== "beilngries";
+}
+
 function getOrderTotal(items, { excludeDeposit = false } = {}) {
   return (items || []).reduce((sum, item) => {
     if (excludeDeposit && isDepositItem(item)) return sum;
@@ -806,6 +810,12 @@ function openPaymentModal() {
   const modal = document.getElementById("payment-modal");
   if (!modal) return;
 
+  const cardButton = document.getElementById("payment-card-button");
+  const cardHint = document.getElementById("payment-card-hint");
+  const cardPaymentAvailable = isCardPaymentAvailable();
+  if (cardButton) cardButton.hidden = !cardPaymentAvailable;
+  if (cardHint) cardHint.hidden = !cardPaymentAvailable;
+
   const paymentModalPriceEl = document.getElementById("payment-modal-price");
   const total = getOrderTotal(currentOrder);
   if (paymentModalPriceEl) {
@@ -822,6 +832,7 @@ function closePaymentModal() {
 }
 
 async function submitPaymentMethod(method) {
+  if (method === "card" && !isCardPaymentAvailable()) method = "cash";
   closePaymentModal();
   await finalizeOrder(method);
 }
@@ -1242,8 +1253,10 @@ async function downloadPDF(){
   doc.setFontSize(10);
   doc.text(`Bar: ${fmt(cashTotal)}`, margin, y + 1.4);
   y += 5;
-  doc.text(`Karte: ${fmt(cardTotal)}`, margin, y + 1.4);
-  y += 5;
+  if (isCardPaymentAvailable()) {
+    doc.text(`Karte: ${fmt(cardTotal)}`, margin, y + 1.4);
+    y += 5;
+  }
   doc.text(`Personal boniert: ${fmt(personalTotal)}`, margin, y + 1.4);
 
   doc.setTextColor(130, 130, 130);
@@ -1498,13 +1511,15 @@ function updateStats() {
       <div></div>
       <div>${cashTotal.toFixed(2)}€</div>
     </div>
-    <div class="stat-row">
-      <div>Karte</div>
-      <div></div>
-      <div></div>
-      <div></div>
-      <div>${cardTotal.toFixed(2)}€</div>
-    </div>
+    ${isCardPaymentAvailable() ? `
+      <div class="stat-row">
+        <div>Karte</div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div>${cardTotal.toFixed(2)}€</div>
+      </div>
+    ` : ""}
     <div class="stat-row">
       <div>Personal boniert</div>
       <div></div>
