@@ -3,18 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Verlauf</title>
-<link rel="stylesheet" href="style.css?v=20260319">
+<title>Ranking</title>
+<link rel="stylesheet" href="style.css?v=20261003">
 <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 
-<body class="history-page has-back-row">
-
+<body class="history-page has-back-row ranking-page">
 <header class="topbar">
   <div class="topbar-left">
     <img src="images/logo.png" class="topbar-logo" alt="Logo">
   </div>
-  <h2>Verlauf</h2>
+  <h2>Ranking</h2>
   <button id="fullscreen-btn">⛶</button>
 </header>
 
@@ -22,11 +21,11 @@
   <a href="index.html" class="page-back-btn">Zurück</a>
 </div>
 
-<div id="bartender-tabs" class="bartender-tabs"></div>
-
-<div class="page">
-  <div id="history"></div>
-</div>
+<main class="page ranking-content">
+  <div id="ranking-container" class="ranking-grid" aria-live="polite">
+    <p class="ranking-empty">Rankings werden geladen …</p>
+  </div>
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js?v=20260505"></script>

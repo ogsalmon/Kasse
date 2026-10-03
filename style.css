@@ -236,6 +236,22 @@ main {
   width: 20px;
 }
 
+.topbar-right .nav-btn[href="ranking.html"] img {
+  animation: ranking-rainbow-hue 3s linear infinite;
+}
+
+@keyframes ranking-rainbow-hue {
+  from { filter: hue-rotate(0deg) saturate(1.5); }
+  to { filter: hue-rotate(360deg) saturate(1.5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar-right .nav-btn[href="ranking.html"] img {
+    animation: none;
+    filter: saturate(1.5);
+  }
+}
+
 .nav-btn:active {
   transform: scale(0.92);
 }
@@ -1629,6 +1645,119 @@ button {
     font-size: 15px;
     margin-top: 14px;
     padding-top: 10px;
+  }
+}
+
+.ranking-content {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 20px 24px 32px;
+}
+
+.ranking-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ranking-panel {
+  min-width: 0;
+  padding: 16px 18px 12px;
+  border-top: 3px solid var(--blue);
+  background: var(--white);
+}
+
+.ranking-panel--revenue {
+  border-top-color: var(--turquoise);
+}
+
+.ranking-panel--beer {
+  border-top-color: var(--ocre);
+}
+
+.ranking-panel--shots {
+  border-top-color: var(--red);
+}
+
+.ranking-panel--soft {
+  border-top-color: #6b8f71;
+}
+
+.ranking-panel-heading {
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(67, 87, 173, 0.14);
+}
+
+.ranking-panel-heading h2 {
+  margin: 0;
+  color: var(--blue);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.ranking-panel-heading p {
+  margin: 4px 0 0;
+  color: #596078;
+  font-size: 13px;
+}
+
+.ranking-list {
+  display: grid;
+  gap: 2px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ranking-empty {
+  margin: 0;
+  padding: 16px 4px 8px;
+  color: #596078;
+  font-size: 14px;
+}
+
+.ranking-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 5px 8px;
+  color: #30364b;
+}
+
+.ranking-row--winner {
+  background: rgba(72, 169, 166, 0.12);
+  font-weight: 700;
+}
+
+.ranking-place {
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.ranking-bartender {
+  overflow-wrap: anywhere;
+}
+
+.ranking-value {
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@media (max-width: 700px) {
+  .ranking-content {
+    padding: 12px 12px 24px;
+  }
+
+  .ranking-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .ranking-panel {
+    padding: 14px 14px 10px;
   }
 }
 

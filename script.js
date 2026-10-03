@@ -166,8 +166,12 @@ async function resolveBarContextForUser(user) {
 
   const storedBar = getSelectedBarId(username);
   console.log("Gespeicherte Bar-ID:", storedBar);
+  const defaultBar = availableBars.find(bar => bar.id === DEFAULT_BAR_ID);
 
-  if (storedBar && availableBars.some(bar => bar.id === storedBar)) {
+  if (defaultBar) {
+    ACTIVE_BAR_ID = defaultBar.id;
+    setSelectedBarId(username, ACTIVE_BAR_ID);
+  } else if (storedBar && availableBars.some(bar => bar.id === storedBar)) {
     ACTIVE_BAR_ID = storedBar;
   } else if (availableBars.length === 1) {
     ACTIVE_BAR_ID = availableBars[0].id;
@@ -257,38 +261,7 @@ async function selectBarById(barId) {
 }
 
 function renderBarSelectionUI() {
-  if (availableBars.length <= 1) return;
-
-  const topbar = document.querySelector(".topbar");
-  if (!topbar) return;
-
-  let container = document.getElementById("bar-switcher-container");
-  if (!container) {
-    container = document.createElement("div");
-    container.id = "bar-switcher-container";
-    container.className = "bar-switcher-container";
-
-    const target = topbar.querySelector(".topbar-right") || topbar;
-    target.insertBefore(container, target.firstChild);
-  }
-
-  const select = document.createElement("select");
-  select.id = "bar-switcher";
-  select.className = "bar-switcher";
-  select.innerHTML = availableBars
-    .map(bar => `
-      <option value="${bar.id}"${bar.id === ACTIVE_BAR_ID ? " selected" : ""}>
-        ${bar.name}
-      </option>
-    `)
-    .join("");
-
-  select.onchange = async (event) => {
-    await selectBarById(event.target.value);
-  };
-
-  container.innerHTML = "<span class='bar-switcher-label'>Bar:</span>";
-  container.appendChild(select);
+  document.getElementById("bar-switcher-container")?.remove();
 }
 
 let drinks = [];
@@ -341,7 +314,7 @@ let allOrders = [];
 let isPersonalOrder = false;
 
 function isDepositItem(item) {
-  return item?.id === "deposit" || item?.id === "deposit_return";
+  return item?.id === "deposit" || item?.id === "deposit_extra" || item?.id === "deposit_return";
 }
 
 function getDepositQuantities(items) {
@@ -647,20 +620,21 @@ function addDrink(drink) {
 function addDeposit() {
   if (isPersonalOrder) return;
 
-  let deposit = currentOrder.find(i => i.id === "deposit")
+  let depositExtra = currentOrder.find(i => i.id === "deposit_extra");
 
-  if (deposit) {
-    deposit.qty += 1
+  if (depositExtra) {
+    depositExtra.qty += 1;
   } else {
     currentOrder.push({
-      id: "deposit",
-      name: "Pfand",
-      price: 1,
+      id: "deposit_extra",
+      name: "Pfand extra",
+      price: 1.00,
+      deposit: 0,
       qty: 1
-    })
+    });
   }
 
-  updateCurrentOrder()
+  updateCurrentOrder();
 }
 
 function updateCurrentOrder() {
@@ -968,7 +942,7 @@ async function downloadPDF(){
     stationRevenues[station].orderCount += 1;
 
     order.items.forEach(item => {
-      if (!isPersonalItem(item) && item.id !== "deposit" && item.id !== "deposit_return") {
+      if (!isPersonalItem(item) && item.id !== "deposit" && item.id !== "deposit_extra" && item.id !== "deposit_return") {
         stationRevenues[station].total += item.qty * item.price;
       }
     });
@@ -1006,8 +980,8 @@ async function downloadPDF(){
   let cashTotal = 0;
   let cardTotal = 0;
   let personalTotal = 0;
-  let pdfDepositPaidQty = 0;
-  let pdfDepositReturnedQty = 0;
+  let pdfDepositPaid = 0;
+  let pdfDepositReturned = 0;
 
   drinks.forEach(d => {
     drinkStats[d.name] = {
@@ -1024,14 +998,21 @@ async function downloadPDF(){
 
     order.items.forEach(item => {
       if (!isPersonalItem(item) && item.id === "deposit") {
-        pdfDepositPaidQty += item.qty;
+        pdfDepositPaid += item.price * item.qty;
+        if (paymentMethod === "cash") cashTotal += item.price * item.qty;
+        if (paymentMethod === "card") cardTotal += item.price * item.qty;
+        return;
+      }
+
+      if (!isPersonalItem(item) && item.id === "deposit_extra") {
+        pdfDepositPaid += item.price * item.qty;
         if (paymentMethod === "cash") cashTotal += item.price * item.qty;
         if (paymentMethod === "card") cardTotal += item.price * item.qty;
         return;
       }
 
       if (!isPersonalItem(item) && item.id === "deposit_return") {
-        pdfDepositReturnedQty += item.qty;
+        pdfDepositReturned += Math.abs(item.price * item.qty);
         if (paymentMethod === "cash") cashTotal += item.price * item.qty;
         if (paymentMethod === "card") cardTotal += item.price * item.qty;
         return;
@@ -1080,20 +1061,12 @@ async function downloadPDF(){
     .filter(r => r.qty > 0)
     .sort((a, b) => b.qty - a.qty || a.name.localeCompare(b.name, "de"));
 
-  rows.forEach(r => {
-    if (r.name === "Pfand") {
-      r.qty = pdfDepositPaidQty;
-    } else if (r.name === "Pfand Rückgabe") {
-      r.qty = pdfDepositReturnedQty;
-    }
-  });
-
   const personalRowsMap = {};
 
   allOrders.forEach(order => {
     order.items.forEach(item => {
       if (!isPersonalItem(item)) return;
-      if (item.id === "deposit" || item.id === "deposit_return") return;
+      if (isDepositItem(item)) return;
 
       const key = `${order.bartender}::${item.name}`;
       if (!personalRowsMap[key]) {
@@ -1115,16 +1088,8 @@ async function downloadPDF(){
     .sort((a, b) => a.bartender.localeCompare(b.bartender, "de") || a.drink.localeCompare(b.drink, "de"));
 
   let totalCash = 0;
-  let pdfDepositPaid = 0;
-  let pdfDepositReturned = 0;
   rows.forEach(r => {
-    if (r.name === "Pfand") {
-      pdfDepositPaid = r.total;
-    } else if (r.name === "Pfand Rückgabe") {
-      pdfDepositReturned = Math.abs(r.total);
-    } else {
-      totalCash += r.total;
-    }
+    totalCash += r.total;
   });
   const totalCashWithDeposit = totalCash + pdfDepositPaid - pdfDepositReturned;
 
@@ -1476,6 +1441,11 @@ function updateStats() {
       return;
     }
 
+    if (name === "Pfand extra") {
+      depositPaid += total;
+      return;
+    }
+
     if (name === "Pfand Rückgabe") {
       depositReturned = Math.abs(total);
       return;
@@ -1567,7 +1537,7 @@ function computeOrderTotals(orders = []) {
     (order.items || []).forEach(item => {
       if (!item) return;
 
-      if (item.id === "deposit") {
+      if (item.id === "deposit" || item.id === "deposit_extra") {
         totals.depositPaidQty += item.qty;
         totals.depositPaid += item.price * item.qty;
         return;
@@ -1619,7 +1589,7 @@ function computeLegacyTotals(orders = []) {
       if (!item) return;
 
       const lineTotal = item.price * item.qty;
-      if (item.id === "deposit") {
+      if (item.id === "deposit" || item.id === "deposit_extra") {
         totals.depositPaidQty += item.qty;
         totals.depositPaid += lineTotal;
       }
@@ -1804,6 +1774,119 @@ function updateHistory() {
   });
 }
 
+function renderRankings() {
+  const container = document.getElementById("ranking-container");
+  if (!container) return;
+
+  const rankingsByBartender = new Map();
+  allOrders
+    .forEach(order => {
+      if (getOrderPaymentMethod(order) === "personal") return;
+
+      const bartenderName = order.bartender || "Unbekannt";
+      if (!rankingsByBartender.has(bartenderName)) {
+        rankingsByBartender.set(bartenderName, {
+          bartender: bartenderName,
+          drinksSold: 0,
+          revenue: 0,
+          beerSold: 0,
+          shotsSold: 0,
+          softDrinksSold: 0
+        });
+      }
+
+      const bartenderStats = rankingsByBartender.get(bartenderName);
+
+      (order.items || []).forEach(item => {
+        if (!item || isPersonalItem(item) || isDepositItem(item)) return;
+
+        const quantity = Number(item.qty) || 0;
+        if (quantity <= 0) return;
+
+        const lineTotal = quantity * (Number(item.price) || 0);
+        const category = String(item.category || "").trim().toLowerCase();
+        bartenderStats.drinksSold += quantity;
+        bartenderStats.revenue += lineTotal;
+        if (["bier", "beer"].includes(category)) bartenderStats.beerSold += quantity;
+        if (["shot", "shots"].includes(category)) bartenderStats.shotsSold += quantity;
+        if (["soft", "softs", "alkoholfrei", "alkoholfreie getränke", "non-alcoholic"].includes(category)) {
+          bartenderStats.softDrinksSold += quantity;
+        }
+      });
+    });
+
+  const rankingCategories = [
+    { title: "Flüssig...", subtitle: "Rangfolge nach verkaufter Stückzahl aller Getränke; Pfand und Personalbons zählen nicht.", key: "drinksSold", unit: "Getränke", format: value => `${value}x`, accent: "drinks" },
+    { title: "Cha-ching!", subtitle: "Rangfolge nach Stückzahl × Verkaufspreis; Pfand und Personalbons sind ausgenommen.", key: "revenue", unit: "Umsatz", format: value => `${value.toFixed(2)} €`, accent: "revenue" },
+    { title: "Bierkönig", subtitle: "Anzahl verkaufter Einheiten von Getränken mit der Kategorie „Bier“.", key: "beerSold", unit: "Biere", format: value => `${value}x`, accent: "beer" },
+    { title: "Schnapsdrossel", subtitle: "Anzahl verkaufter Einheiten der Kategorie „Shots“; gezählt wird Stückzahl, nicht Alkoholmenge.", key: "shotsSold", unit: "Shots", format: value => `${value}x`, accent: "shots" },
+    { title: "*hust *hust", subtitle: "Anzahl verkaufter Einheiten der Kategorien „Alkoholfrei“ oder „Soft“; maßgeblich ist die Produktkategorie in der Kasse.", key: "softDrinksSold", unit: "Getränke", format: value => `${value}x`, accent: "soft" }
+  ];
+
+  container.replaceChildren();
+  if (rankingsByBartender.size === 0) {
+    const emptyState = document.createElement("p");
+    emptyState.className = "ranking-empty";
+    emptyState.textContent = "Noch keine Verkäufe vorhanden.";
+    container.appendChild(emptyState);
+    return;
+  }
+
+  rankingCategories.forEach(category => {
+    const rankedEntries = [...rankingsByBartender.values()]
+      .filter(entry => entry[category.key] > 0)
+      .sort((a, b) => b[category.key] - a[category.key]
+        || b.revenue - a.revenue
+        || a.bartender.localeCompare(b.bartender, "de"));
+
+    const section = document.createElement("section");
+    section.className = `ranking-panel ranking-panel--${category.accent}`;
+
+    const heading = document.createElement("div");
+    heading.className = "ranking-panel-heading";
+    const title = document.createElement("h2");
+    title.textContent = category.title;
+    const subtitle = document.createElement("p");
+    subtitle.textContent = category.subtitle;
+    heading.append(title, subtitle);
+    section.appendChild(heading);
+
+    if (rankedEntries.length === 0) {
+      const emptyState = document.createElement("p");
+      emptyState.className = "ranking-empty";
+      emptyState.textContent = `Noch keine ${category.unit.toLowerCase()} verkauft.`;
+      section.appendChild(emptyState);
+      container.appendChild(section);
+      return;
+    }
+
+    const list = document.createElement("ol");
+    list.className = "ranking-list";
+    rankedEntries.forEach((entry, index) => {
+      const row = document.createElement("li");
+      row.className = "ranking-row";
+      if (index === 0) row.classList.add("ranking-row--winner");
+
+      const place = document.createElement("span");
+      place.className = "ranking-place";
+      place.textContent = String(index + 1);
+
+      const bartender = document.createElement("span");
+      bartender.className = "ranking-bartender";
+      bartender.textContent = entry.bartender;
+
+      const value = document.createElement("span");
+      value.className = "ranking-value";
+      value.textContent = category.format(entry[category.key]);
+
+      row.append(place, bartender, value);
+      list.appendChild(row);
+    });
+    section.appendChild(list);
+    container.appendChild(section);
+  });
+}
+
 function renderStats(stats, grandTotal) {
   const box = document.getElementById("stats");
   if (!box) return;   // <-- WICHTIG
@@ -1923,6 +2006,10 @@ async function loadOrdersFromServer() {
 
   if (error) {
     console.error(error);
+    const rankingContent = document.getElementById("ranking-container");
+    if (rankingContent) {
+      rankingContent.textContent = "Rankings konnten nicht geladen werden.";
+    }
     return;
   }
 
@@ -1936,12 +2023,14 @@ async function loadOrdersFromServer() {
   updateHistory();
   updateStats();
   renderBartenderTabs();
+  renderRankings();
 }
 
 let isSyncingOfflineOrders = false;
+let isResettingOrders = false;
 
 async function syncOfflineOrders() {
-  if (isSyncingOfflineOrders) return;
+  if (isSyncingOfflineOrders || isResettingOrders) return;
 
   const offlineStorageKey = storageKey("offlineOrders");
   const sourceKey = localStorage.getItem(offlineStorageKey) ? offlineStorageKey : "offlineOrders";
@@ -2257,44 +2346,75 @@ async function initApp() {
 initApp();
 
 async function resetSystem() {
+  if (isResettingOrders) return;
 
-  const { data: deletedOrders, error } = await supabaseClient
-    .from("orders")
-    .delete()
-    .eq("bar_id", ACTIVE_BAR_ID)
-    .eq("bartender", bartender)
-    .select("id");
-
-  if (error) {
-    console.error("Reset Fehler:", error);
-    alert("Fehler beim Zurücksetzen");
+  if (isSyncingOfflineOrders) {
+    alert("Offline-Bons werden gerade synchronisiert. Bitte warte kurz und starte den Reset danach erneut.");
     return;
   }
 
-  if (!deletedOrders?.length) {
-    alert("Es wurden keine eigenen gespeicherten Bons gelöscht. Offline-Bestellungen bleiben erhalten.");
-    return;
-  }
+  isResettingOrders = true;
+  if (resetBtn) resetBtn.disabled = true;
+  try {
+    const { data: deletedOrders, error } = await supabaseClient
+      .from("orders")
+      .delete()
+      .eq("bar_id", ACTIVE_BAR_ID)
+      .select("id");
 
-  for (const key of [storageKey("offlineOrders"), "offlineOrders"]) {
-    let queuedOrders = [];
-    try {
-      queuedOrders = JSON.parse(localStorage.getItem(key) || "[]");
-    } catch (parseError) {
-      continue;
+    if (error) {
+      console.error("Reset Fehler:", error);
+      alert("Fehler beim Zurücksetzen. Die Offline-Bons wurden nicht verändert.");
+      return;
     }
 
-    const remainingOrders = queuedOrders.filter(order =>
-      order.bartender !== bartender || (order.bar_id && order.bar_id !== ACTIVE_BAR_ID)
-    );
-    if (remainingOrders.length > 0) {
-      localStorage.setItem(key, JSON.stringify(remainingOrders));
-    } else {
-      localStorage.removeItem(key);
-    }
-  }
+    const { data: remainingOrders, error: verifyError } = await supabaseClient
+      .from("orders")
+      .select("id")
+      .eq("bar_id", ACTIVE_BAR_ID)
+      .limit(1);
 
-  location.reload();
+    if (verifyError || remainingOrders?.length) {
+      console.error("Bar-Reset konnte nicht vollständig bestätigt werden:", verifyError);
+      alert("Nicht alle Bons der Bar wurden gelöscht. Bitte die orders_delete_assigned_bar-Richtlinie in Supabase einrichten.");
+      return;
+    }
+
+    let offlineQueuesCleared = true;
+    for (const key of [storageKey("offlineOrders"), "offlineOrders"]) {
+      let queuedOrders = [];
+      try {
+        queuedOrders = JSON.parse(localStorage.getItem(key) || "[]");
+      } catch (parseError) {
+        offlineQueuesCleared = false;
+        console.error("Offline-Queue konnte beim Bar-Reset nicht gelesen werden:", parseError);
+        continue;
+      }
+
+      const remainingQueuedOrders = queuedOrders.filter(order =>
+        order.bar_id && order.bar_id !== ACTIVE_BAR_ID
+      );
+      try {
+        if (remainingQueuedOrders.length > 0) {
+          localStorage.setItem(key, JSON.stringify(remainingQueuedOrders));
+        } else {
+          localStorage.removeItem(key);
+        }
+      } catch (storageError) {
+        offlineQueuesCleared = false;
+        console.error("Offline-Queue konnte beim Bar-Reset nicht aktualisiert werden:", storageError);
+      }
+    }
+
+    const deletedCount = deletedOrders?.length || 0;
+    alert(offlineQueuesCleared
+      ? `${deletedCount} gespeicherte Bons gelöscht. Offline-Bons dieser Bar auf diesem Gerät wurden ebenfalls entfernt.`
+      : `${deletedCount} gespeicherte Bons gelöscht. Die lokale Offline-Queue konnte nicht vollständig bereinigt werden; einzelne Bons könnten wieder erscheinen.`);
+    location.reload();
+  } finally {
+    isResettingOrders = false;
+    if (resetBtn) resetBtn.disabled = false;
+  }
 }
 
 function cancelReset() {
@@ -2365,9 +2485,9 @@ function updateResetButtonLabel() {
   if (!confirmBtn) return;
 
   if (isResetRunning) {
-    confirmBtn.textContent = `Zurücksetzen (${resetSeconds}s)`;
+    confirmBtn.textContent = `Alle Bons löschen (${resetSeconds}s)`;
   } else {
-    confirmBtn.textContent = "Zurücksetzen";
+    confirmBtn.textContent = "Alle Bons löschen";
   }
 }
 
@@ -2389,6 +2509,7 @@ function stopResetCountdown() {
 
 if (resetBtn) {
   resetBtn.onclick = () => {
+    if (isResettingOrders) return;
     stopResetCountdown();
     if (resetModal) {
       resetModal.classList.add("active");
@@ -2398,7 +2519,7 @@ if (resetBtn) {
 
 if (confirmBtn) {
   confirmBtn.onclick = () => {
-    if (isResetRunning) return;
+    if (isResetRunning || isResettingOrders) return;
 
     isResetRunning = true;
     resetSeconds = RESET_DELAY_SECONDS;

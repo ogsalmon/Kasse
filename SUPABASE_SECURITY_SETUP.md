@@ -168,6 +168,7 @@ drop policy if exists "orders_delete_authenticated" on public.orders;
 drop policy if exists "orders_select_assigned_bar" on public.orders;
 drop policy if exists "orders_insert_own" on public.orders;
 drop policy if exists "orders_delete_own" on public.orders;
+drop policy if exists "orders_delete_assigned_bar" on public.orders;
 
 create policy "barkeepers_select_self"
 on public.barkeepers
@@ -208,13 +209,12 @@ with check (
 	)
 );
 
-create policy "orders_delete_own"
+create policy "orders_delete_assigned_bar"
 on public.orders
 for delete
 to authenticated
 using (
-	bartender = split_part((select auth.jwt()->>'email'), '@', 1)
-	and exists (
+	exists (
 		select 1 from public.barkeepers b
 		where b.username = split_part((select auth.jwt()->>'email'), '@', 1)
 			and b.bar_id = orders.bar_id
@@ -222,7 +222,7 @@ using (
 );
 ```
 
-Damit können Barkeeper nur die Getränkeliste und Bestellungen ihrer zugeordneten Bar lesen und nur eigene Bestellungen anlegen oder löschen. Die Kasse benötigt keine Order-Updates. Prüfe danach in einem privaten Browserfenster, dass `/rest/v1/orders?select=id` mit dem öffentlichen Schlüssel keinen Bestellinhalt mehr liefert; anschließend mit einem Barkeeper-Login Kasse, Verlauf und PDF testen.
+Damit können Barkeeper nur die Getränkeliste und Bestellungen ihrer zugeordneten Bar lesen und Bestellungen dieser Bar anlegen oder löschen. Jeder Barkeeper einer Bar kann damit alle Bons der Bar löschen. Die Kasse benötigt keine Order-Updates. Prüfe danach in einem privaten Browserfenster, dass `/rest/v1/orders?select=id` mit dem öffentlichen Schlüssel keinen Bestellinhalt mehr liefert; anschließend mit einem Barkeeper-Login Kasse, Verlauf und PDF testen.
 
 **Sofortmaßnahme:** Am 26.09.2026 war der Projekt-Endpunkt erreichbar, aber ein anonymer GET auf `orders` lieferte 523 Bestell-Metadatensätze aus beiden konfigurierten Bars. Bis die Policies kontrolliert und getestet sind, keine Bestellungen im System anlegen. Der anonyme GET auf `drinks` und `barkeepers` lieferte keine Zeilen; ob dort Daten vorhanden sind, lässt sich ohne Barkeeper-Login nicht feststellen.
 
@@ -232,7 +232,7 @@ In **Database → Table Editor**:
 
 - `barkeepers`: Für jeden Login muss `username` exakt dem Teil vor `@drinq.local` entsprechen und `bar_id` die UUID aus `config.js` sein. Für Beilngries ist das `ab51c181-946c-4cf2-9305-1a540172cd7f`.
 - `drinks`: Jede Zeile braucht diese `bar_id`; `name`, `category`, `volume`, `price` und `deposit` vor dem Event prüfen. Preise sind Eurobeträge als Dezimalzahl (zum Beispiel `3.50`), nicht Cent.
-- `orders`: Nicht löschen, um eine neue Schicht zu beginnen. PDF und Statistik rechnen mit den pro Bestellung gespeicherten Verkaufspreisen.
+- `orders`: Der Reset in der Kassenabrechnung löscht alle Bons der aktiven Bar endgültig. Jeder Barkeeper dieser Bar darf ihn ausführen. Nicht als harmlosen Schichtwechsel verwenden; PDF und Statistik rechnen mit den gespeicherten Verkaufspreisen.
 
 Lege erst nach dem Anlegen/Prüfen eines Auth-Users die passende `barkeepers`-Zeile an. Die E-Mail allein gibt der App keine Bar-Zuordnung.
 
